@@ -1,0 +1,1348 @@
+{% extends "base.html" %}
+{% block title %}PREDIKSI - Smart Addict ML{% endblock %}
+{% block head %}
+<style>
+    .content {
+        position: relative;
+        z-index: 1;
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 40px 24px 80px;
+    }
+
+    .page-header {
+        text-align: left;
+        margin-bottom: 40px;
+        border-left: 4px solid var(--m-red);
+        padding-left: 20px;
+        animation: fadeInUp 0.4s ease forwards;
+    }
+
+    .page-header h1 {
+        font-size: 2.2rem;
+        font-weight: 900;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        margin-bottom: 6px;
+        color: var(--text-primary);
+    }
+
+    .page-header p {
+        color: var(--text-secondary);
+        font-size: 0.85rem;
+        text-transform: uppercase;
+        letter-spacing: 1.5px;
+    }
+
+    .predict-flow {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 14px;
+        margin: -12px 0 34px;
+        position: relative;
+    }
+
+    .predict-flow::before {
+        content: '';
+        position: absolute;
+        left: 12%;
+        right: 12%;
+        top: 21px;
+        height: 1px;
+        background: linear-gradient(90deg, transparent, var(--m-blue-light), var(--m-blue-dark), transparent);
+        opacity: 0.42;
+    }
+
+    .predict-flow-step {
+        position: relative;
+        z-index: 1;
+        min-height: 86px;
+        padding: 16px 16px 14px;
+        background: rgba(12, 12, 12, 0.52);
+        border: 1px solid var(--border-card);
+        backdrop-filter: blur(14px);
+        -webkit-backdrop-filter: blur(14px);
+        display: grid;
+        align-content: end;
+        overflow: hidden;
+    }
+
+    [data-theme="light"] .predict-flow-step {
+        background: rgba(255, 255, 255, 0.74);
+    }
+
+    .predict-flow-step::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background:
+            linear-gradient(120deg, rgba(0,188,212,0.12), transparent 32%),
+            linear-gradient(90deg, transparent, rgba(255,255,255,0.05), transparent);
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    }
+
+    .predict-flow-step:hover::before {
+        opacity: 1;
+    }
+
+    .predict-flow-step span {
+        position: absolute;
+        top: 12px;
+        left: 14px;
+        color: var(--m-blue-light);
+        font-family: 'Outfit', sans-serif;
+        font-size: 0.72rem;
+        font-weight: 900;
+        letter-spacing: 0.18em;
+    }
+
+    .predict-flow-step strong {
+        font-size: 0.9rem;
+        font-weight: 900;
+        text-transform: uppercase;
+        letter-spacing: 1.4px;
+        color: var(--text-primary);
+    }
+
+    .predict-flow-step em {
+        margin-top: 5px;
+        color: var(--text-secondary);
+        font-style: normal;
+        font-size: 0.7rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+
+    .alert {
+        padding: 16px 20px;
+        border-radius: 0px;
+        margin-bottom: 30px;
+        animation: fadeInUp 0.4s ease forwards;
+        background: rgba(226, 39, 24, 0.08);
+        border: 1px solid var(--m-red);
+    }
+
+    .alert-title {
+        color: var(--m-red);
+        font-weight: 900;
+        font-size: 0.85rem;
+        text-transform: uppercase;
+        letter-spacing: 1.5px;
+        margin-bottom: 8px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .alert ul {
+        list-style: none;
+        padding: 0;
+    }
+
+    .alert li {
+        font-size: 0.82rem;
+        color: var(--text-secondary);
+        padding: 4px 0 4px 16px;
+        position: relative;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+
+    .alert li::before {
+        content: '///';
+        position: absolute;
+        left: 0;
+        font-weight: 900;
+        color: var(--m-red);
+        font-size: 0.75rem;
+    }
+
+    .two-col {
+        display: grid;
+        grid-template-columns: 360px 1fr;
+        gap: 30px;
+        animation: fadeInUp 0.4s ease 0.1s forwards;
+        opacity: 0;
+    }
+
+    .sidebar {
+        position: sticky;
+        top: 100px;
+        align-self: start;
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+    }
+
+    .sidebar-card {
+        padding: 24px;
+        border-radius: 0px;
+        background: var(--bg-card);
+        border: 1px solid var(--border-card);
+        position: relative;
+    }
+
+    .sidebar-card::before {
+        content: '';
+        position: absolute;
+        top: -1px; left: -1px; right: -1px;
+        height: 2px;
+        background: transparent;
+        transition: background 0.3s ease;
+    }
+    .sidebar-card:hover::before {
+        background: linear-gradient(90deg, var(--m-blue-light) 0%, var(--m-blue-dark) 100%);
+    }
+
+    .form-label {
+        display: block;
+        font-size: 0.75rem;
+        font-weight: 800;
+        color: var(--text-primary);
+        margin-bottom: 12px;
+        letter-spacing: 1.5px;
+        text-transform: uppercase;
+    }
+
+    .form-select {
+        width: 100%;
+        padding: 14px 16px;
+        border-radius: 0px;
+        background: var(--bg-input);
+        border: 1px solid var(--border-input);
+        color: var(--text-primary);
+        font-size: 0.85rem;
+        font-weight: 700;
+        font-family: inherit;
+        outline: none;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        appearance: none;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%23ffffff' viewBox='0 0 16 16'%3E%3Cpath d='M4.646 5.646a.5.5 0 0 1 .708 0L8 8.293l2.646-2.647a.5.5 0 0 1 .708.708l-3 3a.5.5 0 0 1-.708 0l-3-3a.5.5 0 0 1 0-.708z'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 16px center;
+    }
+
+    .form-select:focus {
+        border-color: var(--text-primary);
+        background-color: var(--bg-input);
+    }
+
+    .form-select option {
+        background: var(--bg-card);
+        color: var(--text-primary);
+    }
+
+    .divider {
+        height: 1px;
+        background: var(--border-card);
+        margin: 20px 0;
+    }
+
+    .radio-group {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .radio-option {
+        padding: 14px 16px;
+        border-radius: 0px;
+        background: var(--bg-input);
+        border: 1px solid var(--border-input);
+        cursor: pointer;
+        transition: all 0.2s ease;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .radio-option:hover {
+        border-color: var(--text-muted);
+        background: var(--nav-active-bg);
+    }
+
+    .radio-option.selected {
+        border-color: var(--m-blue-light);
+        background: var(--bg-card);
+    }
+
+    .radio-option input {
+        display: none;
+    }
+
+    .radio-option span {
+        font-size: 0.8rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 1.5px;
+        color: var(--text-primary);
+        transition: color 0.2s ease;
+    }
+
+    .radio-option.selected span {
+        color: var(--m-blue-light);
+    }
+
+    .radio-status-indicator {
+        font-size: 0.75rem;
+        font-weight: 900;
+        color: var(--m-blue-light);
+    }
+    .radio-option.selected .radio-status-indicator {
+        color: var(--m-blue-light);
+    }
+
+    .file-upload-area {
+        padding: 30px 20px;
+        border-radius: 0px;
+        text-align: center;
+        border: 1px dashed var(--border-input);
+        background: var(--bg-input);
+        transition: all 0.2s ease;
+        cursor: pointer;
+        margin-top: 16px;
+    }
+
+    .file-upload-area:hover {
+        border-color: var(--text-primary);
+        background: var(--nav-active-bg);
+    }
+
+    .file-upload-area.has-file {
+        border-color: var(--m-blue-light);
+        background: rgba(0, 102, 177, 0.05);
+    }
+
+    .file-upload-icon {
+        font-size: 1.8rem;
+        margin-bottom: 12px;
+        color: var(--text-secondary);
+    }
+
+    .file-upload-text {
+        font-size: 0.78rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        color: var(--text-primary);
+    }
+
+    .file-upload-hint {
+        font-size: 0.7rem;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        margin-top: 6px;
+    }
+
+    .file-upload-name {
+        font-size: 0.78rem;
+        color: var(--m-blue-light);
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        margin-top: 12px;
+        border: 1px solid var(--m-blue-light);
+        padding: 6px 12px;
+        display: inline-block;
+    }
+
+    .file-upload-area input[type="file"] {
+        display: none;
+    }
+
+    .submit-btn {
+        width: 100%;
+        padding: 16px;
+        border-radius: 0px;
+        border: 1px solid var(--text-primary);
+        font-size: 0.85rem;
+        font-weight: 900;
+        font-family: inherit;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        background: transparent;
+        color: var(--text-primary);
+        text-transform: uppercase;
+        letter-spacing: 2px;
+    }
+
+    .submit-btn:hover {
+        background: var(--text-primary);
+        color: var(--bg-primary);
+    }
+
+    .submit-btn-accent {
+        width: 100%;
+        padding: 16px;
+        border-radius: 0px;
+        border: 1px solid var(--m-red);
+        font-size: 0.85rem;
+        font-weight: 900;
+        font-family: inherit;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        background: transparent;
+        color: var(--m-red);
+        text-transform: uppercase;
+        letter-spacing: 2px;
+    }
+
+    .submit-btn-accent:hover {
+        background: var(--m-red);
+        color: #ffffff;
+    }
+
+    .template-download-wrap {
+        margin-top: 14px;
+        display: flex;
+        justify-content: center;
+    }
+
+    .template-download-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 16px;
+        border: 1px solid var(--m-blue-light);
+        color: var(--m-blue-light);
+        background: transparent;
+        border-radius: 0px;
+        text-decoration: none;
+        text-transform: uppercase;
+        letter-spacing: 1.3px;
+        font-size: 0.72rem;
+        font-weight: 800;
+        transition: all 0.25s ease;
+    }
+
+    .template-download-btn:hover {
+        background: var(--m-blue-light);
+        color: var(--bg-primary);
+    }
+
+    .template-download-note {
+        margin-top: 10px;
+        text-align: center;
+        font-size: 0.7rem;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+
+    .main-card {
+        padding: 32px;
+        border-radius: 0px;
+        background: var(--bg-card);
+        border: 1px solid var(--border-card);
+    }
+
+    .main-card-title {
+        font-size: 1.1rem;
+        font-weight: 900;
+        margin-bottom: 30px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        letter-spacing: 2px;
+        text-transform: uppercase;
+        border-bottom: 1px solid var(--border-card);
+        padding-bottom: 16px;
+    }
+
+    .main-card-title-decor {
+        font-size: 0.75rem;
+        color: var(--text-muted);
+        letter-spacing: 1px;
+    }
+
+    .questions-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+        gap: 16px;
+    }
+
+    .question-card {
+        padding: 20px 24px;
+        border-radius: 0px;
+        background: var(--bg-card);
+        border: 1px solid var(--border-card);
+        transition: all 0.25s ease;
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        box-shadow: var(--card-shadow);
+    }
+
+    .question-card:hover {
+        border-color: var(--text-muted);
+    }
+
+    .question-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 8px;
+        flex-grow: 1;
+    }
+
+    .q-info {
+        flex: 1;
+        padding-right: 16px;
+    }
+
+    .q-number {
+        font-size: 0.7rem;
+        font-weight: 900;
+        background: var(--bg-input);
+        color: var(--text-secondary);
+        padding: 3px 8px;
+        border: 1px solid var(--border-card);
+        display: inline-block;
+        margin-bottom: 10px;
+        letter-spacing: 1px;
+    }
+
+    .question-label {
+        font-size: 0.9rem;
+        font-weight: 800;
+        margin-bottom: 6px;
+        color: var(--text-primary);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .question-desc {
+        font-size: 0.75rem;
+        color: var(--text-secondary);
+        line-height: 1.4;
+    }
+
+    /* Range and typing synchronizer row */
+    .telemetry-row {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-top: 18px;
+        background: var(--bg-input);
+        padding: 12px 10px;
+        border: 1px solid var(--border-input);
+    }
+
+    .slider-container {
+        flex: 1;
+        display: flex;
+        align-items: center;
+    }
+
+    /* Premium Cockpit Custom Range Slider */
+    input[type=range] {
+        -webkit-appearance: none;
+        width: 100%;
+        background: transparent;
+    }
+    input[type=range]:focus {
+        outline: none;
+    }
+    input[type=range]::-webkit-slider-runnable-track {
+        width: 100%;
+        height: 4px;
+        cursor: pointer;
+        background: var(--border-input);
+        border: none;
+        transition: background 0.2s ease;
+    }
+    input[type=range]:hover::-webkit-slider-runnable-track {
+        background: var(--text-muted);
+    }
+    input[type=range]::-webkit-slider-thumb {
+        height: 16px;
+        width: 8px;
+        background: var(--m-red);
+        cursor: pointer;
+        -webkit-appearance: none;
+        margin-top: -6px;
+        border-radius: 0px;
+        border: none;
+        transition: background 0.15s ease;
+    }
+    input[type=range]:hover::-webkit-slider-thumb {
+        background: var(--text-primary);
+    }
+    
+    input[type=range]::-moz-range-track {
+        width: 100%;
+        height: 4px;
+        cursor: pointer;
+        background: var(--border-input);
+        border: none;
+    }
+    input[type=range]::-moz-range-thumb {
+        height: 16px;
+        width: 8px;
+        background: var(--m-red);
+        cursor: pointer;
+        border: none;
+        border-radius: 0px;
+    }
+    input[type=range]:hover::-moz-range-thumb {
+        background: var(--text-primary);
+    }
+
+    /* Manual typing box on the right of the slider */
+    .m-manual-input-wrap {
+        position: relative;
+        flex-shrink: 0;
+    }
+
+    .m-manual-input {
+        width: 64px;
+        background: var(--bg-primary);
+        border: 1px solid var(--border-input);
+        color: var(--text-primary);
+        font-family: monospace;
+        font-weight: 700;
+        text-align: center;
+        padding: 8px;
+        font-size: 0.9rem;
+        border-radius: 0px;
+        -moz-appearance: textfield;
+        transition: border-color 0.2s ease, background 0.2s;
+    }
+    .m-manual-input::-webkit-outer-spin-button,
+    .m-manual-input::-webkit-inner-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+    }
+    .m-manual-input:focus {
+        border-color: var(--text-primary);
+        background: var(--bg-input);
+        outline: none;
+    }
+
+    .question-select-wrap {
+        margin-top: 14px;
+    }
+
+    .question-select {
+        width: 100%;
+        padding: 12px 16px;
+        border-radius: 0px;
+        background: var(--bg-input);
+        border: 1px solid var(--border-input);
+        color: var(--text-primary);
+        font-size: 0.85rem;
+        font-weight: 700;
+        font-family: inherit;
+        outline: none;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        appearance: none;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%23ffffff' viewBox='0 0 16 16'%3E%3Cpath d='M4.646 5.646a.5.5 0 0 1 .708 0L8 8.293l2.646-2.647a.5.5 0 0 1 .708.708l-3 3a.5.5 0 0 1-.708 0l-3-3a.5.5 0 0 1 0-.708z'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 16px center;
+    }
+    .question-select:focus {
+        border-color: var(--text-primary);
+    }
+
+    .question-select option {
+        background: var(--bg-card);
+        color: var(--text-primary);
+    }
+
+    /* Telemetry limits visual styling */
+    .slider-limit-label {
+        font-size: 0.65rem;
+        color: var(--text-muted);
+        font-family: monospace;
+        padding: 0 8px;
+        user-select: none;
+    }
+
+    .telemetry-header-val {
+        font-size: 1rem;
+        font-weight: 900;
+        color: var(--text-primary);
+        font-family: monospace;
+        border-left: 2px solid var(--m-blue-light);
+        padding-left: 8px;
+    }
+
+    .telemetry-visual-card {
+        min-height: 300px;
+        padding: 0;
+        overflow: hidden;
+        background:
+            linear-gradient(135deg, rgba(0, 188, 212, 0.08), transparent 42%),
+            radial-gradient(circle at 76% 22%, rgba(28, 105, 212, 0.18), transparent 30%),
+            var(--bg-card);
+    }
+
+    .telemetry-visual-card::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background-image:
+            linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(255, 255, 255, 0.035) 1px, transparent 1px);
+        background-size: 28px 28px;
+        mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.9), transparent 88%);
+        pointer-events: none;
+    }
+
+    #predict3d {
+        height: 210px;
+        position: relative;
+        z-index: 1;
+    }
+
+    .telemetry-readout {
+        position: relative;
+        z-index: 2;
+        padding: 0 20px 20px;
+    }
+
+    .telemetry-status-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 12px;
+        text-transform: uppercase;
+    }
+
+    .telemetry-kicker {
+        color: var(--text-muted);
+        font-size: 0.64rem;
+        font-weight: 900;
+        letter-spacing: 1.5px;
+    }
+
+    .telemetry-status {
+        color: var(--telemetry-accent, var(--m-blue-light));
+        font-family: monospace;
+        font-size: 0.8rem;
+        font-weight: 900;
+        letter-spacing: 1.2px;
+    }
+
+    .telemetry-meter {
+        height: 8px;
+        border: 1px solid var(--border-card);
+        background: var(--bg-primary);
+        overflow: hidden;
+        position: relative;
+    }
+
+    .telemetry-meter-fill {
+        width: calc(var(--telemetry-score, 0.25) * 100%);
+        height: 100%;
+        background: linear-gradient(90deg, var(--m-blue-light), var(--telemetry-accent, var(--m-blue-dark)));
+        box-shadow: 0 0 18px var(--telemetry-accent, var(--m-blue-light));
+        transition: width 0.25s ease, background 0.25s ease;
+    }
+
+    .telemetry-kpi-row {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 8px;
+        margin-top: 12px;
+    }
+
+    .telemetry-kpi {
+        border: 1px solid var(--border-card);
+        background: var(--bg-input);
+        padding: 9px 8px;
+        min-width: 0;
+    }
+
+    .telemetry-kpi span {
+        display: block;
+        color: var(--text-muted);
+        font-size: 0.58rem;
+        font-weight: 900;
+        letter-spacing: 1px;
+        text-transform: uppercase;
+        margin-bottom: 4px;
+    }
+
+    .telemetry-kpi strong {
+        color: var(--text-primary);
+        font-family: monospace;
+        font-size: 0.78rem;
+        text-transform: uppercase;
+        word-break: break-word;
+    }
+
+    .sidebar-card,
+    .main-card,
+    .question-card {
+        backdrop-filter: blur(14px);
+        -webkit-backdrop-filter: blur(14px);
+    }
+
+    .sidebar-card:hover,
+    .main-card:hover,
+    .question-card:hover {
+        border-color: var(--m-blue-light);
+        box-shadow: 0 16px 42px rgba(0, 188, 212, 0.11);
+        transform: translateY(-2px);
+    }
+
+    @media (max-width: 900px) {
+        .two-col {
+            grid-template-columns: 1fr;
+        }
+
+        .sidebar {
+            position: static;
+        }
+    }
+
+    @media (max-width: 600px) {
+        .predict-flow {
+            grid-template-columns: 1fr;
+            gap: 10px;
+            margin-top: -18px;
+        }
+        .predict-flow::before {
+            left: 20px;
+            right: auto;
+            top: 12px;
+            bottom: 12px;
+            width: 1px;
+            height: auto;
+            background: linear-gradient(180deg, transparent, var(--m-blue-light), var(--m-blue-dark), transparent);
+        }
+        .predict-flow-step {
+            min-height: 72px;
+            padding-left: 58px;
+        }
+        .predict-flow-step span {
+            left: 16px;
+            top: 22px;
+        }
+        .main-card {
+            padding: 16px;
+        }
+        .telemetry-row {
+            gap: 8px;
+            padding: 8px;
+        }
+        .telemetry-kpi-row {
+            grid-template-columns: 1fr;
+        }
+        .m-manual-input {
+            width: 55px;
+            padding: 6px;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<main class="content">
+    <div class="page-header">
+        <h1>PREDIKSI LEVEL KECANDUAN</h1>
+        <p>PILIH ALGORITMA MACHINE LEARNING, METODE DATA INPUT, LALU ISI DATA PREDIKSI</p>
+    </div>
+
+    <div class="predict-flow" aria-label="Alur prediksi SmartAddict">
+        <div class="predict-flow-step">
+            <span>01</span>
+            <strong>Input</strong>
+            <em>Manual / CSV</em>
+        </div>
+        <div class="predict-flow-step">
+            <span>02</span>
+            <strong>Model</strong>
+            <em>DT / KNN / NN / SVM</em>
+        </div>
+        <div class="predict-flow-step">
+            <span>03</span>
+            <strong>Diagnosis</strong>
+            <em>Rendah / Sedang / Tinggi</em>
+        </div>
+    </div>
+
+    {% if errors %}
+    <div class="alert">
+        <div class="alert-title">⚠️ TERJADI KESALAHAN PADA PROSES:</div>
+        <ul>{% for error in errors %}<li>{{ error }}</li>{% endfor %}</ul>
+    </div>
+    {% endif %}
+
+    <form method="post" enctype="multipart/form-data">
+        <div class="two-col">
+            <div class="sidebar">
+                <div class="sidebar-card">
+                    <label class="form-label">ALGORITMA ML UTAMA</label>
+                    <select id="model" name="model" class="form-select">
+                        {% for model in models %}<option value="{{ model }}" {% if model==selected_model %}selected{%
+                            endif %}>{{ model | upper }}</option>{% endfor %}
+                    </select>
+                    <div class="divider"></div>
+                    <label class="form-label">METODE INPUT DATA</label>
+                    <div class="radio-group">
+                        <label
+                            class="radio-option {% if active_input_method == 'manual' %}selected{% endif %}"
+                            id="radio-manual" onclick="selectMethod('manual')">
+                            <input type="radio" name="input_method" value="manual" {% if active_input_method == 'manual' %}checked{% endif %}>
+                            <span>📝 INPUT MANUAL</span>
+                            <div class="radio-status-indicator">ACTIVE</div>
+                        </label>
+                        <label
+                            class="radio-option {% if active_input_method == 'file' %}selected{% endif %}"
+                            id="radio-file" onclick="selectMethod('file')">
+                            <input type="radio" name="input_method" value="file" {% if active_input_method == 'file' %}checked{% endif %}>
+                            <span>📁 UPLOAD CSV</span>
+                            <div class="radio-status-indicator">READY</div>
+                        </label>
+                    </div>
+                </div>
+                <div class="sidebar-card telemetry-visual-card">
+                    <div id="predict3d" aria-hidden="true"></div>
+                    <div class="telemetry-readout">
+                        <div class="telemetry-status-row">
+                            <span class="telemetry-kicker">Live Input Signal</span>
+                            <span class="telemetry-status" id="telemetryStatus">CALIBRATING</span>
+                        </div>
+                        <div class="telemetry-meter">
+                            <div class="telemetry-meter-fill"></div>
+                        </div>
+                        <div class="telemetry-kpi-row">
+                            <div class="telemetry-kpi">
+                                <span>Intensity</span>
+                                <strong id="telemetryPercent">0%</strong>
+                            </div>
+                            <div class="telemetry-kpi">
+                                <span>Screen</span>
+                                <strong id="telemetryScreen">0 Jam</strong>
+                            </div>
+                            <div class="telemetry-kpi">
+                                <span>Sleep</span>
+                                <strong id="telemetrySleep">0 Jam</strong>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="sidebar-card {% if active_input_method == 'manual' %}hidden{% endif %}"
+                    id="file-section">
+                    <label class="form-label">DRAG & DROP CSV FILE</label>
+                    <div class="file-upload-area" id="drop-area" onclick="document.getElementById('csv_file').click()">
+                        <div class="file-upload-icon" id="upload-icon">📂</div>
+                        <div class="file-upload-text" id="upload-text">CLICK TO SELECT FILE</div>
+                        <div class="file-upload-hint">FORMAT: CSV • MAKS. 20 BARIS • 10 NUMERICAL COLUMNS</div>
+                        <div class="file-upload-name" id="file-name" style="display:none"></div>
+                        <input type="file" id="csv_file" name="csv_file" accept=".csv">
+                    </div>
+                    <button type="submit" name="csv_submit" class="submit-btn" style="margin-top: 16px;">PROSES FILE CSV</button>
+                    {% if reusable_input and reusable_input.get('batch_mode') and reusable_input.get('batch_rows') %}
+                    <button type="submit" name="reuse_batch_submit" class="submit-btn-accent" style="margin-top: 12px;">PROSES ULANG CSV TERAKHIR</button>
+                    <div class="template-download-note">Gunakan tombol ini untuk mencoba algoritma lain tanpa upload ulang file CSV.</div>
+                    {% endif %}
+                </div>
+                <div id="manual-submit-section"
+                    class="{% if active_input_method == 'file' %}hidden{% endif %}">
+                    <button type="submit" name="manual_submit" class="submit-btn-accent">MULAI ANALISIS PREDIKSI</button>
+                </div>
+            </div>
+
+            <div class="main-panel" id="manual-input" {% if active_input_method == 'file'
+                %}style="display:none" {% endif %}>
+                <div class="main-card">
+                    <div class="main-card-title">
+                        <span>🎛️ PANEL KONTROL PARAMETER PREDIKSI</span>
+                        <span class="main-card-title-decor">10/10 DATA PARAMETERS</span>
+                    </div>
+                    <div class="questions-grid">
+                        {% for question in questions %}
+                        {% set field_value = request.form.get(question.key, prefill_values.get(question.key, question.default)) %}
+                        <div class="question-card">
+                            <div class="question-header">
+                                <div class="q-info">
+                                    <div class="q-number">PARAMETER 0{{ loop.index }}</div>
+                                    <div class="question-label">{{ question.label }}</div>
+                                    <div class="question-desc">{{ question.description }}</div>
+                                </div>
+                                {% if question.type != 'select' %}
+                                <div class="telemetry-header-val" id="text-display-{{ question.key }}">0</div>
+                                {% endif %}
+                            </div>
+
+                            {% if question.type == 'select' %}
+                            <div class="question-select-wrap">
+                                <select id="{{ question.key }}" name="{{ question.key }}" class="question-select">
+                                    {% for option in question.options %}
+                                    <option value="{{ option.value }}" {% if field_value|int == option.value|int %}selected{% endif %}>{{ option.label | upper }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            {% else %}
+                            <!-- Hidden input sent to backend (retains accurate float logic) -->
+                            <input type="hidden" name="{{ question.key }}" id="real-{{ question.key }}" value="{{ field_value }}">
+
+                            <!-- Telemetry cockpit row -->
+                            <div class="telemetry-row">
+                                <span class="slider-limit-label">{{ question.min | int }}</span>
+                                <div class="slider-container">
+                                    <input type="range" class="m-range-slider" id="slider-{{ question.key }}" min="{{ question.min }}" max="{{ question.max }}" step="{{ question.step }}" value="{{ field_value }}" oninput="updateValues('{{ question.key }}', this.value, 'slider')">
+                                </div>
+                                <span class="slider-limit-label">{{ question.max | int }}</span>
+                                <div class="m-manual-input-wrap">
+                                    <input type="number" class="m-manual-input" id="num-{{ question.key }}" min="{{ question.min }}" max="{{ question.max }}" step="any" value="{{ field_value }}" oninput="updateValues('{{ question.key }}', this.value, 'manual')">
+                                </div>
+                            </div>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <div class="main-panel" id="csv-info" {% if active_input_method == 'manual'
+                %}style="display:none" {% endif %}>
+                <div class="main-card" style="text-align: center; padding: 80px 24px;">
+                    <div style="font-size: 3rem; margin-bottom: 24px; color: var(--m-blue-light)">📊</div>
+                    <h3 style="font-size: 1.3rem; font-weight: 900; margin-bottom: 12px; letter-spacing: 2px; text-transform: uppercase;">MODE EVALUASI FILE CSV</h3>
+                    <p
+                        style="color: var(--text-secondary); font-size: 0.8rem; line-height: 1.6; max-width: 450px; margin: 0 auto 30px; text-transform: uppercase; letter-spacing: 1px;">
+                        PILIH FILE CSV DI PANEL KIRI, LALU TEKAN TOMBOL "PROSES FILE CSV".<br>FILE HARUS TERDIRI DARI <strong>10 KOLOM FITUR</strong>; KOLOM GENDER BOLEH DITULIS LANGSUNG PEREMPUAN ATAU LAKI-LAKI.
+                    </p>
+                    <div style="background: #FFF8E1; border: 2px solid #FFD54F; border-radius: 8px; padding: 16px 20px; max-width: 500px; margin: 0 auto 24px; text-align: left; box-shadow: 0 2px 8px rgba(255, 213, 79, 0.2);">
+                        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px;">
+                            <span style="font-size: 1.4rem;">ℹ️</span>
+                            <strong style="color: #F57F17; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1.5px;">FORMAT KOLOM GENDER</strong>
+                        </div>
+                        <div style="font-size: 0.85rem; color: #333; line-height: 1.8; font-weight: 500;">
+                            <div style="margin-bottom: 6px; padding: 8px 12px; background: white; border-radius: 4px; border-left: 3px solid #2196F3;">
+                                <strong style="color: #2196F3;">Perempuan</strong>
+                            </div>
+                            <div style="padding: 8px 12px; background: white; border-radius: 4px; border-left: 3px solid #FF5722;">
+                                <strong style="color: #FF5722;">Laki-laki</strong>
+                            </div>
+                        </div>
+                        <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #FFD54F; font-size: 0.7rem; color: #666; text-align: center;">
+                            💡 Kolom ke-2 di file CSV
+                        </div>
+                    </div>
+                    <div
+                        style="padding: 20px; border-radius: 0px; background: var(--bg-input); border: 1px solid var(--border-card); text-align: left; font-size: 0.8rem; color: var(--text-muted); font-family: monospace; max-width: 500px; margin: 0 auto;">
+                        <div
+                            style="color: var(--text-primary); margin-bottom: 8px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase;">
+                            CONTOH STRUKTUR BARIS CSV:</div>
+                        <span style="color: var(--m-red)">20, Perempuan, 5, 2, 1, 4, 7, 50, 50, 6</span>
+                    </div>
+                    <div class="template-download-wrap">
+                        <a href="{{ url_for('user.download_csv_template') }}" class="template-download-btn">📥 DOWNLOAD TEMPLATE CSV</a>
+                    </div>
+                    <div class="template-download-note">BARIS PERTAMA (HEADER NAMA KOLOM) AKAN DI-SKIP OTOMATIS SAAT PREDIKSI.</div>
+                </div>
+            </div>
+        </div>
+    </form>
+</main>
+{% endblock %}
+
+{% block footer %}{% endblock %}
+
+{% block scripts %}
+<script>
+    function selectMethod(m) {
+        const mi = document.getElementById('manual-input'), ci = document.getElementById('csv-info'),
+            fs = document.getElementById('file-section'), ms = document.getElementById('manual-submit-section'),
+            rm = document.getElementById('radio-manual'), rf = document.getElementById('radio-file');
+        if (m === 'manual') { 
+            mi.style.display = ''; 
+            ci.style.display = 'none'; 
+            fs.classList.add('hidden'); 
+            ms.classList.remove('hidden'); 
+            rm.classList.add('selected'); 
+            rf.classList.remove('selected'); 
+            rm.querySelector('input').checked = true; 
+        } else { 
+            mi.style.display = 'none'; 
+            ci.style.display = ''; 
+            fs.classList.remove('hidden'); 
+            ms.classList.add('hidden'); 
+            rf.classList.add('selected'); 
+            rm.classList.remove('selected'); 
+            rf.querySelector('input').checked = true; 
+        }
+    }
+    
+    document.getElementById('csv_file').addEventListener('change', function (e) {
+        const fn = e.target.files[0]?.name;
+        if (fn) { 
+            document.getElementById('file-name').textContent = 'READY: ' + fn.toUpperCase(); 
+            document.getElementById('file-name').style.display = ''; 
+            document.getElementById('upload-icon').textContent = '📄'; 
+            document.getElementById('upload-text').textContent = 'FILE LOADED'; 
+            document.getElementById('drop-area').classList.add('has-file'); 
+        }
+    });
+    
+    const da = document.getElementById('drop-area');
+    ['dragenter', 'dragover'].forEach(e => da.addEventListener(e, ev => { 
+        ev.preventDefault(); 
+        da.style.borderColor = 'var(--text-primary)'; 
+    }));
+    ['dragleave', 'drop'].forEach(e => da.addEventListener(e, ev => { 
+        ev.preventDefault(); 
+        da.style.borderColor = ''; 
+    }));
+    da.addEventListener('drop', e => { 
+        if (e.dataTransfer.files[0]) { 
+            document.getElementById('csv_file').files = e.dataTransfer.files; 
+            document.getElementById('csv_file').dispatchEvent(new Event('change')); 
+        } 
+    });
+
+    let predict3DState = null;
+
+    function clamp01(value) {
+        return Math.max(0, Math.min(1, value));
+    }
+
+    function readTelemetryValue(key, fallback = 0) {
+        const input = document.getElementById('real-' + key) || document.getElementById(key);
+        const value = parseFloat(input?.value);
+        return Number.isFinite(value) ? value : fallback;
+    }
+
+    function getTelemetryAccent(score) {
+        const styles = getComputedStyle(document.documentElement);
+        if (score >= 0.68) return styles.getPropertyValue('--m-red').trim() || '#e22718';
+        if (score >= 0.36) return styles.getPropertyValue('--m-blue-dark').trim() || '#1c69d4';
+        return styles.getPropertyValue('--m-blue-light').trim() || '#00bcd4';
+    }
+
+    function initPredict3D() {
+        const mount = document.getElementById('predict3d');
+        if (!mount || typeof THREE === 'undefined') return;
+
+        const width = mount.clientWidth || 280;
+        const height = mount.clientHeight || 210;
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(42, width / height, 0.1, 100);
+        camera.position.z = 4.4;
+
+        const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+        renderer.setSize(width, height);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+        mount.appendChild(renderer.domElement);
+
+        scene.add(new THREE.AmbientLight(0xffffff, 0.78));
+        const light = new THREE.PointLight(0x00bcd4, 1.6, 8);
+        light.position.set(2.4, 2.2, 3.2);
+        scene.add(light);
+
+        const group = new THREE.Group();
+        scene.add(group);
+
+        const body = new THREE.Mesh(
+            new THREE.BoxGeometry(1.24, 2.2, 0.14),
+            new THREE.MeshPhysicalMaterial({
+                color: 0x070b12,
+                metalness: 0.5,
+                roughness: 0.24,
+                clearcoat: 0.8
+            })
+        );
+        group.add(body);
+
+        const screenMaterial = new THREE.MeshBasicMaterial({
+            color: 0x00bcd4,
+            transparent: true,
+            opacity: 0.18,
+            side: THREE.DoubleSide
+        });
+        const screen = new THREE.Mesh(new THREE.PlaneGeometry(1.08, 1.94), screenMaterial);
+        screen.position.z = 0.08;
+        group.add(screen);
+
+        const accentMaterial = new THREE.MeshBasicMaterial({
+            color: 0x00bcd4,
+            transparent: true,
+            opacity: 0.86
+        });
+
+        const orbit = new THREE.Mesh(new THREE.TorusGeometry(0.72, 0.014, 12, 80), accentMaterial);
+        orbit.rotation.x = Math.PI / 2.8;
+        group.add(orbit);
+
+        const pulse = new THREE.Mesh(new THREE.TorusGeometry(0.46, 0.012, 12, 80), accentMaterial.clone());
+        pulse.position.z = 0.1;
+        group.add(pulse);
+
+        const nodesGeometry = new THREE.BufferGeometry();
+        const nodePositions = [];
+        for (let i = 0; i < 48; i++) {
+            const a = Math.random() * Math.PI * 2;
+            const r = 0.72 + Math.random() * 0.42;
+            nodePositions.push(Math.cos(a) * r, (Math.random() - 0.5) * 2.15, Math.sin(a) * 0.28);
+        }
+        nodesGeometry.setAttribute('position', new THREE.Float32BufferAttribute(nodePositions, 3));
+        const nodesMaterial = new THREE.PointsMaterial({
+            color: 0x00bcd4,
+            size: 0.035,
+            transparent: true,
+            opacity: 0.68
+        });
+        const nodes = new THREE.Points(nodesGeometry, nodesMaterial);
+        group.add(nodes);
+
+        let targetX = 0;
+        let targetY = 0;
+        window.addEventListener('mousemove', (event) => {
+            targetX = (event.clientX / window.innerWidth - 0.5) * 0.4;
+            targetY = (event.clientY / window.innerHeight - 0.5) * 0.3;
+        });
+
+        predict3DState = {
+            accentMaterial,
+            screenMaterial,
+            nodesMaterial,
+            light,
+            group,
+            orbit,
+            pulse,
+            nodes,
+            renderer,
+            camera,
+            mount,
+            energy: 0.25,
+            targetX,
+            targetY
+        };
+
+        window.addEventListener('resize', () => {
+            const nextWidth = mount.clientWidth || width;
+            const nextHeight = mount.clientHeight || height;
+            camera.aspect = nextWidth / nextHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(nextWidth, nextHeight);
+        });
+
+        function animatePredict3D() {
+            requestAnimationFrame(animatePredict3D);
+            const state = predict3DState;
+            group.rotation.y += 0.01 + state.energy * 0.006;
+            group.rotation.x += (targetY - group.rotation.x) * 0.03;
+            group.rotation.z += (targetX - group.rotation.z) * 0.02;
+            orbit.rotation.z += 0.02 + state.energy * 0.03;
+            pulse.rotation.z -= 0.018;
+            pulse.scale.setScalar(0.92 + state.energy * 0.35 + Math.sin(Date.now() * 0.004) * 0.03);
+            nodes.rotation.y -= 0.005;
+            renderer.render(scene, camera);
+        }
+
+        animatePredict3D();
+    }
+
+    function updatePredictTelemetry() {
+        const screen = readTelemetryValue('daily_screen_time_hours');
+        const social = readTelemetryValue('social_media_hours');
+        const gaming = readTelemetryValue('gaming_hours');
+        const sleep = readTelemetryValue('sleep_hours', 8);
+        const notifications = readTelemetryValue('notifications_per_day');
+        const opens = readTelemetryValue('app_opens_per_day');
+        const weekend = readTelemetryValue('weekend_screen_time');
+        const sleepDebt = clamp01((8 - sleep) / 8);
+        const score = clamp01(
+            clamp01(screen / 24) * 0.24 +
+            clamp01(social / 12) * 0.16 +
+            clamp01(gaming / 12) * 0.12 +
+            clamp01(notifications / 500) * 0.16 +
+            clamp01(opens / 500) * 0.14 +
+            clamp01(weekend / 24) * 0.12 +
+            sleepDebt * 0.06
+        );
+        const accent = getTelemetryAccent(score);
+        const label = score >= 0.68 ? 'CRITICAL' : (score >= 0.36 ? 'ELEVATED' : 'NORMAL');
+
+        document.documentElement.style.setProperty('--telemetry-score', score.toFixed(3));
+        document.documentElement.style.setProperty('--telemetry-accent', accent);
+
+        const status = document.getElementById('telemetryStatus');
+        const percent = document.getElementById('telemetryPercent');
+        const screenLabel = document.getElementById('telemetryScreen');
+        const sleepLabel = document.getElementById('telemetrySleep');
+        if (status) status.textContent = label;
+        if (percent) percent.textContent = Math.round(score * 100) + '%';
+        if (screenLabel) screenLabel.textContent = Math.round(screen) + ' Jam';
+        if (sleepLabel) sleepLabel.textContent = Math.round(sleep) + ' Jam';
+
+        if (predict3DState) {
+            predict3DState.energy = score;
+            predict3DState.accentMaterial.color.set(accent);
+            predict3DState.screenMaterial.color.set(accent);
+            predict3DState.nodesMaterial.color.set(accent);
+            predict3DState.light.color.set(accent);
+            predict3DState.screenMaterial.opacity = 0.14 + score * 0.18;
+            predict3DState.accentMaterial.opacity = 0.55 + score * 0.4;
+            predict3DState.light.intensity = 1.2 + score * 1.4;
+        }
+    }
+
+    // Custom Input Synchronization Logic
+    function updateValues(key, val, source) {
+        const realInput = document.getElementById('real-' + key);
+        const slider = document.getElementById('slider-' + key);
+        const numInput = document.getElementById('num-' + key);
+        const textDisplay = document.getElementById('text-display-' + key);
+        
+        let floatVal = parseFloat(val);
+        if (isNaN(floatVal)) {
+            floatVal = parseFloat(slider.getAttribute('min')) || 0;
+        }
+        
+        const minVal = parseFloat(slider.getAttribute('min'));
+        const maxVal = parseFloat(slider.getAttribute('max'));
+        
+        if (floatVal < minVal) floatVal = minVal;
+        if (floatVal > maxVal) floatVal = maxVal;
+        
+        // Update the real hidden input (retains exact float)
+        realInput.value = floatVal;
+        
+        // Synchronize Slider
+        if (source !== 'slider') {
+            slider.value = floatVal;
+        }
+        
+        // Synchronize Manual Text Input & Text Display
+        const formattedVal = Math.round(floatVal);
+        if (source !== 'manual') {
+            numInput.value = formattedVal;
+        }
+        
+        if (textDisplay) {
+            textDisplay.textContent = formattedVal;
+        }
+
+        updatePredictTelemetry();
+    }
+
+    // Initialize all values on page load
+    document.addEventListener("DOMContentLoaded", function() {
+        initPredict3D();
+        {% for question in questions %}
+        {% set field_value = request.form.get(question.key, prefill_values.get(question.key, question.default)) %}
+        {% if question.type != 'select' %}
+        updateValues('{{ question.key }}', '{{ field_value }}', 'init');
+        {% endif %}
+        {% endfor %}
+        updatePredictTelemetry();
+    });
+</script>
+{% endblock %}

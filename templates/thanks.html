@@ -1,0 +1,2061 @@
+{% extends "base.html" %}
+{% block title %}HASIL PREDIKSI - Smart Addict ML{% endblock %}
+
+{% block head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+    .content {
+        position: relative;
+        z-index: 1;
+        max-width: 1100px;
+        margin: 0 auto;
+        padding: 40px 24px 80px;
+    }
+
+    .result-hero {
+        text-align: center;
+        margin-bottom: 40px;
+        animation: fadeInUp 0.5s ease forwards;
+    }
+
+    .result-hero .success-icon {
+        font-size: 2.8rem;
+        margin-bottom: 16px;
+        animation: checkBounce 0.6s ease 0.2s forwards;
+        opacity: 0;
+        color: var(--m-blue-light);
+    }
+
+    @keyframes checkBounce {
+        0% { transform: scale(0); opacity: 0; }
+        50% { transform: scale(1.15); }
+        100% { transform: scale(1); opacity: 1; }
+    }
+
+    .result-hero h1 {
+        font-size: clamp(1.6rem, 4vw, 2.2rem);
+        font-weight: 900;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        margin-bottom: 12px;
+        color: var(--text-primary);
+    }
+
+    .level-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 12px;
+        padding: 16px 36px;
+        border-radius: 0px;
+        font-size: clamp(1.1rem, 3vw, 1.4rem);
+        font-weight: 900;
+        margin-bottom: 8px;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        border: 1px solid transparent;
+        background: var(--bg-input);
+    }
+
+    .level-badge.rendah {
+        border-color: var(--accent-emerald);
+        color: var(--accent-emerald);
+    }
+
+    .level-badge.sedang {
+        border-color: var(--m-blue-dark);
+        color: var(--m-blue-dark);
+    }
+
+    .level-badge.tinggi {
+        border-color: var(--m-red);
+        color: var(--m-red);
+    }
+
+    .level-badge.batch {
+        border-color: var(--m-blue-dark);
+        color: var(--m-blue-dark);
+    }
+
+    .result-model {
+        font-size: 0.8rem;
+        color: var(--text-secondary);
+        text-transform: uppercase;
+        letter-spacing: 1.5px;
+        margin-top: 12px;
+    }
+
+    .result-model strong {
+        color: var(--text-primary);
+    }
+
+    .summary-row {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 20px;
+        margin-bottom: 40px;
+        animation: fadeInUp 0.5s ease 0.15s forwards;
+        opacity: 0;
+    }
+
+    .summary-card {
+        padding: 24px;
+        border-radius: 0px;
+        text-align: center;
+        background: var(--bg-card);
+        border: 1px solid var(--border-card);
+        position: relative;
+    }
+
+    .summary-card::before {
+        content: '';
+        position: absolute;
+        bottom: -1px; left: -1px; right: -1px;
+        height: 2px;
+        background: transparent;
+    }
+
+    .summary-card:nth-child(1)::before { background: var(--m-blue-light); }
+    .summary-card:nth-child(2)::before { background: var(--m-blue-dark); }
+    .summary-card:nth-child(3)::before { background: var(--m-red); }
+
+    .diagnostic-hero-grid {
+        display: grid;
+        grid-template-columns: minmax(280px, 0.9fr) minmax(300px, 1.1fr);
+        gap: 24px;
+        align-items: stretch;
+        margin-bottom: 40px;
+        animation: fadeInUp 0.5s ease 0.1s forwards;
+        opacity: 0;
+    }
+
+    .diagnostic-visual-panel,
+    .diagnostic-readout {
+        border-radius: 0px;
+        background: color-mix(in srgb, var(--bg-card) 78%, transparent);
+        border: 1px solid var(--border-card);
+        box-shadow: var(--card-shadow);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .diagnostic-visual-panel {
+        min-height: 320px;
+        isolation: isolate;
+        background:
+            linear-gradient(135deg, rgba(0, 188, 212, 0.12), transparent 36%),
+            radial-gradient(circle at 70% 35%, rgba(28, 105, 212, 0.16), transparent 34%),
+            var(--bg-card);
+    }
+
+    .diagnostic-visual-panel::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background-image:
+            linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(255, 255, 255, 0.035) 1px, transparent 1px);
+        background-size: 34px 34px;
+        mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.9), transparent 85%);
+        pointer-events: none;
+    }
+
+    #result3d {
+        position: absolute;
+        inset: 0;
+        z-index: 1;
+    }
+
+    .diagnostic-scanline {
+        position: absolute;
+        inset: 0;
+        z-index: 2;
+        pointer-events: none;
+        background: linear-gradient(to bottom, transparent 0%, rgba(255, 255, 255, 0.08) 50%, transparent 100%);
+        height: 90px;
+        transform: translateY(-120px);
+        animation: scanlineMove 5s ease-in-out infinite;
+    }
+
+    @keyframes scanlineMove {
+        0%, 100% { transform: translateY(-120px); opacity: 0; }
+        18%, 82% { opacity: 0.65; }
+        50% { transform: translateY(360px); opacity: 0.25; }
+    }
+
+    .diagnostic-readout {
+        padding: 28px;
+        display: grid;
+        gap: 16px;
+        align-content: center;
+    }
+
+    .diagnostic-readout::before {
+        content: '';
+        position: absolute;
+        top: -1px;
+        left: -1px;
+        right: -1px;
+        height: 3px;
+        background: linear-gradient(90deg, var(--m-blue-light), var(--m-blue-dark), var(--m-red));
+    }
+
+    .diagnostic-readout-title {
+        font-size: 0.78rem;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        font-weight: 900;
+    }
+
+    .diagnostic-readout-main {
+        font-size: clamp(1.5rem, 4vw, 2.7rem);
+        font-weight: 900;
+        line-height: 1;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+    }
+
+    .diagnostic-hero-grid.result-level-rendah .diagnostic-readout-main { color: var(--accent-emerald); }
+    .diagnostic-hero-grid.result-level-sedang .diagnostic-readout-main { color: var(--m-blue-dark); }
+    .diagnostic-hero-grid.result-level-tinggi .diagnostic-readout-main { color: var(--m-red); }
+    .diagnostic-hero-grid.result-level-batch .diagnostic-readout-main { color: var(--m-blue-dark); }
+
+    .diagnostic-readout-copy {
+        color: var(--text-secondary);
+        font-size: 0.88rem;
+        line-height: 1.65;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .diagnostic-metrics {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 10px;
+        margin-top: 8px;
+    }
+
+    .diagnostic-metric {
+        padding: 12px;
+        background: var(--bg-input);
+        border: 1px solid var(--border-card);
+    }
+
+    .diagnostic-metric span {
+        display: block;
+        color: var(--text-muted);
+        font-size: 0.64rem;
+        font-weight: 800;
+        letter-spacing: 1.2px;
+        text-transform: uppercase;
+        margin-bottom: 6px;
+    }
+
+    .diagnostic-metric strong {
+        color: var(--text-primary);
+        font-family: monospace;
+        font-size: 0.9rem;
+        text-transform: uppercase;
+    }
+
+    .summary-card,
+    .chart-card,
+    .comparison-table-wrap,
+    .thanks-section {
+        backdrop-filter: blur(14px);
+        -webkit-backdrop-filter: blur(14px);
+    }
+
+    .summary-card,
+    .chart-card,
+    .comparison-table-wrap,
+    .thanks-section,
+    .diagnostic-visual-panel,
+    .diagnostic-readout {
+        transition: border-color 0.3s ease, box-shadow 0.3s ease, transform 0.3s ease;
+    }
+
+    .summary-card:hover,
+    .chart-card:hover,
+    .comparison-table-wrap:hover,
+    .thanks-section:hover,
+    .diagnostic-visual-panel:hover,
+    .diagnostic-readout:hover {
+        border-color: var(--m-blue-light);
+        box-shadow: 0 18px 44px rgba(0, 188, 212, 0.12);
+        transform: translateY(-3px);
+    }
+
+    .diagnostic-hero-grid,
+    .summary-row,
+    .chart-card,
+    .features-comparison-container,
+    .batch-detail-container,
+    .actions,
+    .thanks-section {
+        opacity: 1;
+    }
+
+    @keyframes fadeInUp {
+        from { opacity: 0.72; transform: translateY(14px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    .summary-value {
+        font-size: clamp(1.3rem, 3vw, 1.8rem);
+        font-weight: 900;
+        letter-spacing: 1px;
+        text-transform: uppercase;
+    }
+
+    .summary-label {
+        font-size: clamp(0.7rem, 1.5vw, 0.75rem);
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        margin-top: 6px;
+    }
+
+    .chart-card {
+        padding: 28px;
+        border-radius: 0px;
+        background: var(--bg-card);
+        border: 1px solid var(--border-card);
+        animation: fadeInUp 0.5s ease forwards;
+        opacity: 0;
+    }
+
+    .chart-card:nth-child(1) { animation-delay: 0.2s; }
+    .chart-card:nth-child(2) { animation-delay: 0.3s; }
+
+    .chart-title {
+        font-size: 0.85rem;
+        font-weight: 900;
+        margin-bottom: 24px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        text-transform: uppercase;
+        letter-spacing: 1.5px;
+        color: var(--text-primary);
+        border-left: 2px solid var(--m-red);
+        padding-left: 10px;
+    }
+
+    .batch-stats-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 14px;
+        margin-top: 20px;
+    }
+
+    .batch-stat-card {
+        padding: 18px 16px;
+        background: var(--bg-card);
+        border: 1px solid var(--border-card);
+        text-align: center;
+    }
+
+    .batch-stat-card .stat-label {
+        font-size: 0.68rem;
+        font-weight: 800;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        margin-bottom: 8px;
+    }
+
+    .batch-stat-card .stat-value {
+        font-size: 1rem;
+        font-weight: 900;
+        letter-spacing: 0.5px;
+        text-transform: uppercase;
+    }
+
+    .batch-stat-card .stat-subvalue {
+        margin-top: 6px;
+        font-size: 0.72rem;
+        color: var(--text-secondary);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .batch-mini-chart {
+        height: 7px;
+        margin-top: 12px;
+        background: var(--bg-input);
+        border: 1px solid var(--border-card);
+        overflow: hidden;
+        display: flex;
+    }
+
+    .batch-mini-fill {
+        height: 100%;
+        min-width: 2px;
+    }
+
+    .batch-mini-fill.rendah { background: var(--accent-emerald); }
+    .batch-mini-fill.sedang { background: var(--m-blue-dark); }
+    .batch-mini-fill.tinggi { background: var(--m-red); }
+    .batch-mini-fill.male { background: var(--m-blue-light); }
+    .batch-mini-fill.female { background: var(--m-blue-dark); }
+
+    .batch-mini-axis {
+        margin-top: 8px;
+        display: flex;
+        justify-content: space-between;
+        gap: 8px;
+        font-size: 0.62rem;
+        color: var(--text-muted);
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.8px;
+    }
+
+    .batch-analysis-layout {
+        display: grid;
+        gap: 16px;
+        margin-top: 20px;
+    }
+
+    .batch-line-card {
+        padding: 22px;
+        background: var(--bg-card);
+        border: 1px solid var(--border-card);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .batch-line-card::before {
+        content: '';
+        position: absolute;
+        inset: -1px -1px auto -1px;
+        height: 2px;
+        background: linear-gradient(90deg, var(--m-blue-light), var(--m-blue-dark), var(--m-red));
+    }
+
+    .batch-line-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 18px;
+        margin-bottom: 18px;
+    }
+
+    .batch-line-title {
+        font-size: 0.86rem;
+        font-weight: 900;
+        color: var(--text-primary);
+        text-transform: uppercase;
+        letter-spacing: 1.4px;
+        margin-bottom: 7px;
+    }
+
+    .batch-line-copy,
+    .batch-line-note {
+        color: var(--text-muted);
+        font-size: 0.72rem;
+        line-height: 1.6;
+        text-transform: uppercase;
+        letter-spacing: 0.9px;
+    }
+
+    .batch-line-meta {
+        flex: 0 0 auto;
+        padding: 8px 12px;
+        border: 1px solid var(--border-card);
+        color: var(--m-blue-light);
+        font-size: 0.7rem;
+        font-weight: 900;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        background: var(--bg-input);
+    }
+
+    .batch-line-canvas-wrap {
+        position: relative;
+        height: 320px;
+        margin-top: 6px;
+    }
+
+    .batch-line-note {
+        margin-top: 14px;
+    }
+
+    .batch-summary-strip {
+        display: grid;
+        grid-template-columns: repeat(6, minmax(0, 1fr));
+        gap: 10px;
+    }
+
+    .batch-summary-pill {
+        padding: 14px 12px;
+        background: var(--bg-card);
+        border: 1px solid var(--border-card);
+        min-height: 86px;
+        display: grid;
+        align-content: center;
+        gap: 6px;
+    }
+
+    .batch-summary-pill span {
+        color: var(--text-muted);
+        font-size: 0.64rem;
+        font-weight: 900;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+
+    .batch-summary-pill strong {
+        color: var(--text-primary);
+        font-size: 1rem;
+        font-weight: 900;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .chart-card.full {
+        grid-column: 1 / -1;
+    }
+
+    /* ═══════ COMPARISON TABLE STYLING ═══════ */
+    .features-comparison-container {
+        animation: fadeInUp 0.5s ease 0.4s forwards;
+        opacity: 0;
+        margin-bottom: 40px;
+    }
+
+    .features-comparison-container.batch-mode > .chart-title:first-child {
+        display: none;
+    }
+
+    .batch-detail-container {
+        animation: fadeInUp 0.5s ease 0.45s forwards;
+        opacity: 0;
+        margin-bottom: 40px;
+    }
+
+    .batch-detail-note {
+        margin-top: 8px;
+        font-size: 0.72rem;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+
+    .batch-detail-table td,
+    .batch-detail-table th {
+        white-space: nowrap;
+        font-size: 0.72rem;
+    }
+
+    .batch-detail-table .row-index {
+        font-family: monospace;
+        font-weight: 900;
+        color: var(--m-blue-light);
+        text-align: center;
+    }
+
+    .batch-detail-table .row-diagnosis {
+        font-weight: 900;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+
+    .batch-detail-table .row-diagnosis.rendah {
+        color: var(--accent-emerald);
+    }
+
+    .batch-detail-table .row-diagnosis.sedang {
+        color: var(--m-blue-dark);
+    }
+
+    .batch-detail-table .row-diagnosis.tinggi {
+        color: var(--m-red);
+    }
+
+    .comparison-table-wrap {
+        margin-top: 20px;
+        background: var(--bg-card);
+        border: 1px solid var(--border-card);
+        overflow-x: auto;
+        border-radius: 0px;
+    }
+
+    .comparison-table {
+        width: 100%;
+        border-collapse: collapse;
+        text-align: left;
+        font-size: 0.82rem;
+    }
+
+    .comparison-table th {
+        background: var(--bg-input);
+        padding: 14px 16px;
+        font-weight: 800;
+        font-size: 0.72rem;
+        text-transform: uppercase;
+        letter-spacing: 1.5px;
+        color: var(--text-primary);
+        border-bottom: 1.5px solid var(--border-card);
+    }
+
+    .comparison-table td {
+        padding: 14px 16px;
+        border-bottom: 1px solid var(--border-card);
+        color: var(--text-secondary);
+        vertical-align: middle;
+    }
+
+    .comparison-table tr:hover td {
+        background: var(--nav-active-bg);
+        color: var(--text-primary);
+    }
+
+    .comparison-table tr:last-child td {
+        border-bottom: none;
+    }
+
+    .comparison-table .feat-name-col {
+        font-weight: 800;
+        color: var(--text-primary);
+        letter-spacing: 0.5px;
+    }
+
+    .comparison-table .feat-icon {
+        margin-right: 8px;
+        font-size: 1.1rem;
+    }
+
+    .comparison-table .user-value-cell {
+        font-weight: 800;
+        color: var(--m-blue-light);
+    }
+
+    .comparison-table .avg-value-cell {
+        font-weight: 700;
+        color: var(--text-muted);
+    }
+
+    .comparison-table .pct-progress-wrap {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        min-width: 240px;
+    }
+
+    .comparison-table .pct-bar-bg {
+        height: 6px;
+        background: #111111;
+        flex: 1;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .comparison-table .pct-bar-fill {
+        height: 100%;
+        width: 0;
+        transition: width 1s ease-in-out;
+    }
+
+    .comparison-table .pct-bar-fill.high {
+        background: var(--m-red);
+    }
+
+    .comparison-table .pct-bar-fill.normal {
+        background: var(--m-blue-dark);
+    }
+
+    .comparison-table .pct-bar-fill.low {
+        background: var(--accent-emerald);
+    }
+
+    .comparison-table .pct-label {
+        font-family: monospace;
+        font-size: 0.75rem;
+        font-weight: 800;
+        width: 45px;
+        text-align: right;
+    }
+
+    .comparison-table .pct-label.high {
+        color: var(--m-red);
+    }
+
+    .comparison-table .pct-label.normal {
+        color: var(--text-primary);
+    }
+
+    .comparison-table .pct-label.low {
+        color: var(--accent-emerald);
+    }
+
+    .actions {
+        display: flex;
+        gap: 16px;
+        justify-content: center;
+        flex-wrap: wrap;
+        animation: fadeInUp 0.5s ease 0.5s forwards;
+        opacity: 0;
+        margin-bottom: 48px;
+    }
+
+    /* ═══════ THANK YOU SECTION ═══════ */
+    .thanks-section {
+        padding: 40px;
+        border-radius: 0px;
+        background: var(--bg-card);
+        border: 1px solid var(--border-card);
+        text-align: center;
+        animation: fadeInUp 0.5s ease 0.6s forwards;
+        opacity: 0;
+        position: relative;
+    }
+
+    .thanks-section::before {
+        content: '';
+        position: absolute;
+        top: -1px; left: -1px; right: -1px;
+        height: 3px;
+        background: var(--m-blue-dark);
+    }
+
+    .thanks-section .thanks-icon {
+        font-size: 2.2rem;
+        margin-bottom: 16px;
+    }
+
+    .thanks-section h3 {
+        font-size: clamp(1.1rem, 2.5vw, 1.3rem);
+        font-weight: 900;
+        margin-bottom: 12px;
+        text-transform: uppercase;
+        letter-spacing: 1.5px;
+        color: var(--text-primary);
+    }
+
+    .thanks-section h3 .user-name {
+        color: var(--m-blue-light);
+    }
+
+    .thanks-section p {
+        font-size: clamp(0.8rem, 1.5vw, 0.88rem);
+        color: var(--text-secondary);
+        line-height: 1.6;
+        max-width: 600px;
+        margin: 0 auto 24px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .thanks-section .thanks-note {
+        padding: 16px 24px;
+        border-radius: 0px;
+        background: var(--bg-input);
+        border: 1px solid var(--border-card);
+        font-size: 0.75rem;
+        color: var(--text-muted);
+        line-height: 1.6;
+        display: inline-block;
+        max-width: 580px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .thanks-section .thanks-note strong {
+        color: var(--text-primary);
+    }
+
+    .no-result {
+        text-align: center;
+        padding: 80px 24px;
+        animation: fadeInUp 0.5s ease forwards;
+    }
+
+    .no-result .empty-icon {
+        font-size: 3.5rem;
+        margin-bottom: 20px;
+        color: var(--text-muted);
+    }
+
+    .no-result h2 {
+        font-size: 1.4rem;
+        font-weight: 900;
+        margin-bottom: 10px;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        color: var(--text-primary);
+    }
+
+    .no-result p {
+        color: var(--text-secondary);
+        margin-bottom: 28px;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+
+    .confetti-container {
+        position: fixed;
+        inset: 0;
+        z-index: 100;
+        pointer-events: none;
+        overflow: hidden;
+    }
+
+    .confetti {
+        position: absolute;
+        border-radius: 0px;
+        animation: confetti-fall linear forwards;
+    }
+
+    @keyframes confetti-fall {
+        0% { transform: translateY(-20px) rotate(0deg); opacity: 1; }
+        100% { transform: translateY(100vh) rotate(360deg); opacity: 0; }
+    }
+
+    /* ═══════ MOBILE RESPONSIVE ═══════ */
+    @media (max-width: 768px) {
+        .content { padding: 30px 16px 60px; }
+        .diagnostic-hero-grid { grid-template-columns: 1fr; }
+        .diagnostic-visual-panel { min-height: 260px; }
+        .diagnostic-metrics { grid-template-columns: 1fr; }
+        .summary-row { grid-template-columns: 1fr; gap: 14px; }
+        .summary-card { padding: 20px; }
+        .batch-stats-grid { grid-template-columns: 1fr 1fr; }
+        .batch-line-card { padding: 18px 14px; }
+        .batch-line-header { flex-direction: column; }
+        .batch-line-meta { width: 100%; text-align: center; }
+        .batch-line-canvas-wrap { height: 280px; }
+        .batch-summary-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .level-badge { padding: 12px 24px; }
+        .chart-card { padding: 20px 16px; }
+        .features-grid { grid-template-columns: 1fr; }
+        .actions { flex-direction: column; align-items: center; }
+        .actions .btn-primary,
+        .actions .btn-secondary { width: 100%; max-width: 320px; text-align: center; }
+        .thanks-section { padding: 28px 20px; }
+    }
+</style>
+{% endblock %}
+
+{% block extra_orbs %}
+<div class="orb" style="width:500px; height:500px; top:10%; left:65%; background:rgba(28, 105, 212, 0.08); animation-delay:-3s;"></div>
+<div class="orb" style="width:400px; height:400px; top:50%; left:-10%; background:rgba(226, 39, 24, 0.05); animation-delay:-5s;"></div>
+{% endblock %}
+
+{% block content %}
+<main class="content">
+    {% if result %}
+    {% set is_batch = result.get('batch_mode', false) %}
+    {% set batch_dist = result.get('distribution', {}) %}
+    {% set batch_rendah = batch_dist.get('Rendah', 0) %}
+    {% set batch_sedang = batch_dist.get('Sedang', 0) %}
+    {% set batch_tinggi = batch_dist.get('Tinggi', 0) %}
+    <div class="confetti-container" id="confetti"></div>
+
+    <div class="result-hero">
+        <div class="success-icon">✅</div>
+        <h1>{% if is_batch %}LAPORAN UPLOAD CSV SELESAI{% else %}DETEKSI KECANDUAN SELESAI{% endif %}</h1>
+        {% set level_class = 'batch' if is_batch else ('rendah' if result['diagnosis'] == 'Rendah' else ('sedang' if result['diagnosis'] == 'Sedang' else 'tinggi')) %}
+        <div class="level-badge {{ level_class }}">
+            {% if is_batch %}BATCH CSV TERPROSES{% else %}LEVEL DIAGNOSIS: {{ result['diagnosis'] }}{% endif %}
+        </div>
+        <div class="result-model">ALGORITMA MACHINE LEARNING: <strong>{{ result['model'] | upper }}</strong>{% if is_batch %} | BATCH CSV: <strong>{{ result['batch_count'] }} DATA</strong> | STATUS: <strong>TERPROSES</strong>{% endif %}</div>
+    </div>
+
+    <section class="diagnostic-hero-grid result-level-{{ level_class }}">
+        <div class="diagnostic-visual-panel" aria-hidden="true">
+            <div id="result3d" data-level="{{ level_class }}"></div>
+            <div class="diagnostic-scanline"></div>
+        </div>
+        <div class="diagnostic-readout">
+            <div class="diagnostic-readout-title">Smartphone Addiction Diagnostic Core</div>
+            <div class="diagnostic-readout-main">{% if is_batch %}LAPORAN BATCH CSV{% else %}{{ result['diagnosis'] }}{% endif %}</div>
+            <p class="diagnostic-readout-copy">
+                {% if is_batch %}
+                    Upload CSV diproses per baris, lalu diringkas sebagai laporan batch yang menampilkan distribusi level, rata-rata fitur, dan detail tiap row input.
+                {% else %}
+                    Visualisasi ini membaca pola screen time, intensitas aplikasi, dan sinyal aktivitas digital sebagai satu panel diagnosis berbasis machine learning.
+                {% endif %}
+            </p>
+            <div class="diagnostic-metrics">
+                <div class="diagnostic-metric">
+                    <span>{% if is_batch %}Baris CSV{% else %}Screen Time{% endif %}</span>
+                    <strong>{% if is_batch %}{{ result['batch_count'] }} Data{% else %}{{ result['values'][2] | round | int }} Jam{% endif %}</strong>
+                </div>
+                <div class="diagnostic-metric">
+                    <span>{% if is_batch %}Algoritma{% else %}Algoritma{% endif %}</span>
+                    <strong>{{ result['model'] | upper }}</strong>
+                </div>
+                <div class="diagnostic-metric">
+                    <span>{% if is_batch %}Rata-rata{% else %}Mode{% endif %}</span>
+                    <strong>{% if is_batch %}{{ result['feature_averages'][2] | round | int }} Jam{% else %}Single{% endif %}</strong>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <div class="summary-row">
+        {% if is_batch %}
+        <div class="summary-card">
+            <div class="summary-value" style="color: var(--m-blue-light);">{{ result['batch_count'] }}</div>
+            <div class="summary-label">TOTAL BARIS CSV</div>
+        </div>
+        <div class="summary-card">
+            <div class="summary-value" style="color: var(--text-primary);">{{ result['batch_stats']['avg_sleep'] | round(1) }} jam</div>
+            <div class="summary-label">RATA-RATA TIDUR</div>
+        </div>
+        <div class="summary-card">
+            <div class="summary-value" style="color: var(--text-primary);">{{ result['feature_averages'][2] | round | int }} jam</div>
+            <div class="summary-label">RATA-RATA SCREEN TIME</div>
+        </div>
+        {% else %}
+        <div class="summary-card">
+            <div class="summary-value" style="color: var(--m-blue-light);">{{ result['values'][2] | round | int }} jam</div>
+            <div class="summary-label">SCREEN TIME / HARI</div>
+        </div>
+        <div class="summary-card">
+            <div class="summary-value" style="color: var(--text-primary);">{{ result['values'][0] | int }} thn</div>
+            <div class="summary-label">USIA PENGGUNA</div>
+        </div>
+        <div class="summary-card">
+            <div class="summary-value" style="{% if result['prediction_raw'] == 0 %}color: var(--accent-emerald);{% elif result['prediction_raw'] == 1 %}color: var(--m-blue-dark);{% else %}color: var(--m-red);{% endif %}">
+                {{ result['diagnosis'] | upper }}
+            </div>
+            <div class="summary-label">INDEX KECANDUAN</div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Centered Single Level Kecanduan Chart -->
+    <div class="chart-single-centered" style="max-width: 500px; margin: 0 auto 40px; display: block;">
+        <div class="chart-card" style="animation-delay: 0.2s;">
+            <div class="chart-title">🎯 {% if is_batch %}DISTRIBUSI LEVEL BATCH CSV{% else %}DISTRIBUSI LEVEL KECANDUAN{% endif %}</div>
+            <div style="position: relative; height: 280px; display: flex; align-items: center; justify-content: center;">
+                <canvas id="gaugeChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Redesigned Feature Indicators and Global Averages Section -->
+    <div class="features-comparison-container {% if is_batch %}batch-mode{% endif %}">
+        <div class="chart-title">📊 {% if is_batch %}STATISTIK UPLOAD CSV{% else %}EVALUASI PERBANDINGAN INDIKATOR FITUR{% endif %}</div>
+
+        {% if is_batch %}
+        <div class="chart-title">KOMPOSISI STATISTIK CSV</div>
+        <div class="batch-analysis-layout">
+            <div class="batch-line-card">
+                <div class="batch-line-header">
+                    <div>
+                        <div class="batch-line-title">Grafik Pola Fitur Per Baris CSV</div>
+                        <div class="batch-line-copy">Membandingkan fitur berbasis jam agar pola tiap data input terlihat jelas dari baris pertama sampai terakhir.</div>
+                    </div>
+                    <div class="batch-line-meta">{{ result['batch_count'] }} Data CSV</div>
+                </div>
+                <div class="batch-line-canvas-wrap">
+                    <canvas id="batchLineChart"></canvas>
+                </div>
+                <div class="batch-line-note">Fitur notifikasi dan buka aplikasi tidak dicampur ke line chart utama karena skalanya berbeda jauh dari fitur berbasis jam.</div>
+            </div>
+
+            <div class="batch-summary-strip">
+                <div class="batch-summary-pill">
+                    <span>Total Baris</span>
+                    <strong style="color: var(--m-blue-light);">{{ result['batch_count'] }} Data</strong>
+                </div>
+                <div class="batch-summary-pill">
+                    <span>Rendah</span>
+                    <strong style="color: var(--accent-emerald);">{{ batch_rendah }}</strong>
+                </div>
+                <div class="batch-summary-pill">
+                    <span>Sedang</span>
+                    <strong style="color: var(--m-blue-dark);">{{ batch_sedang }}</strong>
+                </div>
+                <div class="batch-summary-pill">
+                    <span>Tinggi</span>
+                    <strong style="color: var(--m-red);">{{ batch_tinggi }}</strong>
+                </div>
+                <div class="batch-summary-pill">
+                    <span>Rata-rata Screen</span>
+                    <strong>{{ result['batch_stats']['avg_screen_time'] | round(1) }} Jam</strong>
+                </div>
+                <div class="batch-summary-pill">
+                    <span>Gender L/P</span>
+                    <strong>{{ result['batch_stats']['male_count'] }} / {{ result['batch_stats']['female_count'] }}</strong>
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <div class="comparison-table-wrap">
+            <table class="comparison-table">
+                <thead>
+                    <tr>
+                        <th style="width: 60px; text-align: center;">No.</th>
+                        <th>Nama Fitur</th>
+                        <th>Rata-rata</th>
+                        <th>Input User</th>
+                        <th>Grafik Line Persentase</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for q in questions %}
+                        {% set idx = loop.index0 %}
+                        {% set user_val = result['values'][idx] %}
+                        {% set avg_val = averages[idx] %}
+                        <tr>
+                            <td style="text-align: center; font-family: monospace; font-weight: 800; color: var(--text-muted);">
+                                {{ loop.index }}
+                            </td>
+                            <td class="feat-name-col">
+                                <span class="feat-icon">
+                                    {% if q.key == 'age' %}👤
+                                    {% elif q.key == 'gender' %}🚻
+                                    {% elif q.key == 'daily_screen_time_hours' %}📱
+                                    {% elif q.key == 'social_media_hours' %}💬
+                                    {% elif q.key == 'gaming_hours' %}🎮
+                                    {% elif q.key == 'work_study_hours' %}💼
+                                    {% elif q.key == 'sleep_hours' %}🛌
+                                    {% elif q.key == 'notifications_per_day' %}🔔
+                                    {% elif q.key == 'app_opens_per_day' %}📲
+                                    {% elif q.key == 'weekend_screen_time' %}📅
+                                    {% else %}📡
+                                    {% endif %}
+                                </span>
+                                {{ q.label | upper }}
+                            </td>
+                            <td class="avg-value-cell">
+                                {% if q.key == 'gender' %}
+                                    {{ (avg_val * 100) | round | int }}% LAKI-LAKI
+                                {% else %}
+                                    {{ avg_val | round | int }}
+                                    {% if q.key in ['daily_screen_time_hours', 'social_media_hours', 'gaming_hours', 'work_study_hours', 'sleep_hours', 'weekend_screen_time'] %} jam
+                                    {% elif q.key == 'age' %} tahun
+                                    {% elif q.key == 'notifications_per_day' %} notif
+                                    {% elif q.key == 'app_opens_per_day' %} kali
+                                    {% endif %}
+                                {% endif %}
+                            </td>
+                            <td class="user-value-cell">
+                                {% if q.key == 'gender' %}
+                                    {% if user_val == 1 %}LAKI-LAKI{% else %}PEREMPUAN{% endif %}
+                                {% else %}
+                                    {{ user_val | round | int }}
+                                    {% if q.key in ['daily_screen_time_hours', 'social_media_hours', 'gaming_hours', 'work_study_hours', 'sleep_hours', 'weekend_screen_time'] %} jam
+                                    {% elif q.key == 'age' %} tahun
+                                    {% elif q.key == 'notifications_per_day' %} notif
+                                    {% elif q.key == 'app_opens_per_day' %} kali
+                                    {% endif %}
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if q.key != 'gender' %}
+                                    {% set pct = (user_val / avg_val * 100) if avg_val > 0 else 0 %}
+                                    <div class="pct-progress-wrap">
+                                        <div class="pct-bar-bg">
+                                            <div class="pct-bar-fill {% if pct > 120 %}high{% elif pct < 80 %}low{% else %}normal{% endif %}" style="width: {{ [pct, 100] | min }}%"></div>
+                                        </div>
+                                        <span class="pct-label {% if pct > 120 %}high{% elif pct < 80 %}low{% else %}normal{% endif %}">
+                                            {{ pct | round | int }}%
+                                        </span>
+                                    </div>
+                                {% else %}
+                                    <div class="pct-progress-wrap">
+                                        <div class="gender-distribution-bar" style="width: 100%; height: 6px; display: flex; background: #111111; overflow: hidden; flex: 1;">
+                                            <div class="gender-bar male" style="width: {{ (avg_val * 100) | round | int }}%; background: var(--m-blue-light);" title="Laki-laki: {{ (avg_val * 100) | round | int }}%"></div>
+                                            <div class="gender-bar female" style="width: {{ ((1 - avg_val) * 100) | round | int }}%; background: var(--m-blue-dark);" title="Perempuan: {{ ((1 - avg_val) * 100) | round | int }}%"></div>
+                                        </div>
+                                        <span class="pct-label normal" style="color: var(--text-muted); font-size: 0.72rem;">
+                                            {% if user_val == 1 %}
+                                                {{ (avg_val * 100) | round | int }}% LAKI-LAKI
+                                            {% else %}
+                                                {{ ((1 - avg_val) * 100) | round | int }}% PEREMPUAN
+                                            {% endif %}
+                                        </span>
+                                    </div>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% endif %}
+    </div>
+
+    {% if is_batch %}
+    <div class="batch-detail-container">
+        <div class="chart-title">🧾 DETAIL HASIL PER BARIS UPLOAD</div>
+        <div class="batch-detail-note">MENAMPILKAN {{ result['batch_count'] }} BARIS CSV DENGAN EVALUASI LEVEL KECANDUAN UNTUK SETIAP BARIS INPUT.</div>
+
+        <div class="comparison-table-wrap">
+            <table class="comparison-table batch-detail-table">
+                <thead>
+                    <tr>
+                        <th style="width: 60px; text-align: center;">NO.</th>
+                        <th>USIA</th>
+                        <th>GENDER</th>
+                        <th>SCREEN TIME</th>
+                        <th>MEDIA SOSIAL</th>
+                        <th>GAMING</th>
+                        <th>KERJA/BELAJAR</th>
+                        <th>TIDUR</th>
+                        <th>NOTIFIKASI</th>
+                        <th>BUKA APLIKASI</th>
+                        <th>WEEKEND SCREEN</th>
+                        <th>DIAGNOSIS</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in result['batch_rows'] %}
+                    <tr>
+                        <td class="row-index">{{ row['row_number'] }}</td>
+                        {% for q in questions %}
+                        {% set idx = loop.index0 %}
+                        {% set cell_value = row['values'][idx] %}
+                        <td>
+                            {% if q.key == 'gender' %}
+                                {% if cell_value == 1 %}LAKI-LAKI{% else %}PEREMPUAN{% endif %}
+                            {% else %}
+                                {{ cell_value | round | int }}
+                                {% if q.key in ['daily_screen_time_hours', 'social_media_hours', 'gaming_hours', 'work_study_hours', 'sleep_hours', 'weekend_screen_time'] %} JAM
+                                {% elif q.key == 'age' %} THN
+                                {% elif q.key == 'notifications_per_day' %} NOTIF
+                                {% elif q.key == 'app_opens_per_day' %} KALI
+                                {% endif %}
+                            {% endif %}
+                        </td>
+                        {% endfor %}
+                        {% set row_level = 'rendah' if row['diagnosis'] == 'Rendah' else ('sedang' if row['diagnosis'] == 'Sedang' else 'tinggi') %}
+                        <td class="row-diagnosis {{ row_level }}">{{ row['diagnosis'] }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+
+
+
+    <div class="actions">
+        <button onclick="exportPDF()" class="btn-primary" id="exportBtn">📥 EXPORT LAPORAN PDF</button>
+        <a href="{{ url_for('user.predict', reuse=1) }}" class="btn-secondary">🔄 COBA MODEL LAIN</a>
+        <a href="{{ url_for('user.predict', reset=1) }}" class="btn-secondary">INPUT BARU</a>
+        <a href="{{ url_for('user.history_page') }}" class="btn-secondary">📋 RIWAYAT LOG</a>
+        <a href="{{ url_for('user.dashboard') }}" class="btn-secondary">🏠 BERANDA</a>
+    </div>
+
+    <!-- ═══════ THANK YOU SECTION ═══════ -->
+    <section class="thanks-section">
+        <div class="thanks-icon">🙏</div>
+        <h3>EVALUASI SELESAI, <span class="user-name">{{ current_user.username | upper }}</span> - SMARTADDICT ML</h3>
+        <p>
+            APRESIASI PENUH KAMI ATAS PARTISIPASI ANDA DALAM MENGGUNAKAN SMARTADDICT ML. 
+            RECORD PREDIKSI INI BERKONTRIBUSI UNTUK PEMETAAN AKURAT MODEL KECANDUAN SMARTPHONE.
+        </p>
+        <div class="thanks-note">
+            <strong>📚 LOG PENELITIAN AKADEMIK:</strong> RECORD DATA PREDIKSI DIKUMPULKAN SECARA ANONIM 
+            UNTUK KEPERLUAN ANALISIS DAN PENGUJIAN TUGAS BESAR DASAR ILMU DATA. 
+            PRIVASI DAN KERAHASIAAN KOORDINAT DATA ANDA TERJAGA DENGAN AMAN.
+        </div>
+    </section>
+
+    {% else %}
+    <div class="no-result">
+        <div class="empty-icon">🔍</div>
+        <h2>BELUM ADA HASIL RECORD PREDIKSI</h2>
+        <p>SILAKAN SELESAIKAN PROSES PREDIKSI TERLEBIH DAHULU UNTUK MEMBUKA PANEL DIAGNOSIS INI.</p>
+        <a href="{{ url_for('user.predict') }}" class="btn-primary">🚀 MULAI PREDIKSI</a>
+    </div>
+    {% endif %}
+</main>
+{% endblock %}
+
+{% block scripts %}
+{% if result %}
+<script>
+    const values = {{ result['values'] | tojson }};
+    const averages = {{ averages | tojson }};
+    const isBatch = {{ result.get('batch_mode', false) | tojson }};
+    const batchRows = {{ result.get('batch_rows', []) | tojson }};
+    const batchStats = {{ (result.get('batch_stats') or {}) | tojson }};
+    const distribution = {{ result.get('distribution', {'Rendah': 0, 'Sedang': 0, 'Tinggi': 0}) | tojson }};
+    const batchCount = {{ result.get('batch_count', 1) }};
+    const labels = ['USIA', 'GENDER', 'SCREEN TIME', 'MEDIA SOSIAL', 'GAMING', 'KERJA/BELAJAR', 'JAM TIDUR', 'NOTIFIKASI', 'BUKA APLIKASI', 'WEEKEND SCREEN TIME'];
+    const predictionRaw = {{ result['prediction_raw'] | tojson }};
+    const diagnosis = {{ result['diagnosis'] | tojson }}.toUpperCase();
+    const result_model = {{ result['model'] | tojson }};
+    const comparisonResults = {{ (result.get('comparison') or []) | tojson }};
+    const reportUser = {{ current_user.username | tojson }};
+    const activeModelVersion = {{ (active_model_version or 'unknown') | tojson }};
+    const inputMethod = {{ (result.get('input_method') or ('csv' if result.get('batch_mode', false) else 'manual')) | tojson }};
+
+    const mBlueLight = '#16a34a';
+    const mBlueDark = '#1c69d4';
+    const mRed = '#e22718';
+
+    const roundedValues = values.map(v => Math.round(v));
+
+    const levelColors = [mBlueLight, mBlueDark, mRed];
+    const levelLabels = ['RENDAH', 'SEDANG', 'TINGGI'];
+    const gaugeValues = isBatch ? [distribution.Rendah || 0, distribution.Sedang || 0, distribution.Tinggi || 0] : [1, 1, 1];
+    let myChart = null;
+    let batchLineChart = null;
+
+    function renderBatchLineChart(isLight) {
+        const canvas = document.getElementById('batchLineChart');
+        if (!canvas || !isBatch || !batchRows.length) return;
+
+        if (batchLineChart) {
+            batchLineChart.destroy();
+        }
+
+        const rowLabels = batchRows.map((row, index) => 'Data ' + (row.row_number || index + 1));
+        const valueAt = (row, index) => {
+            const value = Number(row.values?.[index] || 0);
+            return Number.isFinite(value) ? value : 0;
+        };
+        const gridColor = isLight ? 'rgba(15, 23, 42, 0.08)' : 'rgba(255, 255, 255, 0.08)';
+        const tickColor = isLight ? '#475569' : '#94a3b8';
+
+        batchLineChart = new Chart(canvas, {
+            type: 'line',
+            data: {
+                labels: rowLabels,
+                datasets: [
+                    {
+                        label: 'Screen Time',
+                        data: batchRows.map(row => valueAt(row, 2)),
+                        borderColor: '#00bcd4',
+                        backgroundColor: 'rgba(0, 188, 212, 0.12)',
+                        tension: 0.35,
+                        fill: false,
+                        borderWidth: 2.5,
+                        pointRadius: 3,
+                        pointHoverRadius: 5
+                    },
+                    {
+                        label: 'Media Sosial',
+                        data: batchRows.map(row => valueAt(row, 3)),
+                        borderColor: '#1c69d4',
+                        backgroundColor: 'rgba(28, 105, 212, 0.12)',
+                        tension: 0.35,
+                        fill: false,
+                        borderWidth: 2.5,
+                        pointRadius: 3,
+                        pointHoverRadius: 5
+                    },
+                    {
+                        label: 'Gaming',
+                        data: batchRows.map(row => valueAt(row, 4)),
+                        borderColor: '#e22718',
+                        backgroundColor: 'rgba(226, 39, 24, 0.12)',
+                        tension: 0.35,
+                        fill: false,
+                        borderWidth: 2.5,
+                        pointRadius: 3,
+                        pointHoverRadius: 5
+                    },
+                    {
+                        label: 'Jam Tidur',
+                        data: batchRows.map(row => valueAt(row, 6)),
+                        borderColor: '#16a34a',
+                        backgroundColor: 'rgba(22, 163, 74, 0.12)',
+                        tension: 0.35,
+                        fill: false,
+                        borderWidth: 2.5,
+                        pointRadius: 3,
+                        pointHoverRadius: 5
+                    },
+                    {
+                        label: 'Weekend Screen',
+                        data: batchRows.map(row => valueAt(row, 9)),
+                        borderColor: '#f59e0b',
+                        backgroundColor: 'rgba(245, 158, 11, 0.12)',
+                        tension: 0.35,
+                        fill: false,
+                        borderWidth: 2,
+                        borderDash: [5, 4],
+                        pointRadius: 3,
+                        pointHoverRadius: 5
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: {
+                    mode: 'index',
+                    intersect: false
+                },
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            color: tickColor,
+                            usePointStyle: true,
+                            pointStyle: 'line',
+                            boxWidth: 28,
+                            font: { size: 11, weight: '800' },
+                            padding: 16
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            afterTitle(items) {
+                                const row = batchRows[items?.[0]?.dataIndex];
+                                return row?.diagnosis ? 'Diagnosis: ' + row.diagnosis : '';
+                            },
+                            label(context) {
+                                return context.dataset.label + ': ' + Number(context.parsed.y || 0).toFixed(1) + ' jam';
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        ticks: {
+                            color: tickColor,
+                            font: { size: 10, weight: '800' },
+                            maxRotation: 0
+                        },
+                        grid: {
+                            color: gridColor
+                        }
+                    },
+                    y: {
+                        beginAtZero: true,
+                        suggestedMax: 24,
+                        ticks: {
+                            color: tickColor,
+                            font: { size: 10, weight: '800' },
+                            callback(value) {
+                                return value + ' jam';
+                            }
+                        },
+                        grid: {
+                            color: gridColor
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    function renderChart() {
+        const isLight = document.documentElement.getAttribute('data-theme') === 'light';
+        const legendColor = isLight ? '#334155' : '#ffffff';
+        const unselectedBorder = isLight ? '#e2e8f0' : '#111111';
+        const unselectedBG0 = isLight ? 'rgba(52, 211, 153, 0.08)' : 'rgba(22, 163, 74, 0.1)';
+        const unselectedBG1 = isLight ? 'rgba(28, 105, 212, 0.08)' : 'rgba(28, 105, 212, 0.1)';
+        const unselectedBG2 = isLight ? 'rgba(226, 39, 24, 0.08)' : 'rgba(226, 39, 24, 0.1)';
+        const batchColors = [mBlueLight, mBlueDark, mRed];
+
+        if (myChart) {
+            myChart.destroy();
+        }
+
+        Chart.defaults.color = isLight ? '#64748b' : '#aaaaaa';
+        Chart.defaults.font.family = 'monospace';
+
+        myChart = new Chart(document.getElementById('gaugeChart'), {
+            type: 'doughnut',
+            data: { 
+                labels: levelLabels, 
+                datasets: [{ 
+                    data: gaugeValues, 
+                    backgroundColor: isBatch ? batchColors : [
+                        predictionRaw === 0 ? mBlueLight : unselectedBG0, 
+                        predictionRaw === 1 ? mBlueDark : unselectedBG1, 
+                        predictionRaw === 2 ? mRed : unselectedBG2
+                    ], 
+                    borderColor: isBatch ? batchColors : [
+                        predictionRaw === 0 ? mBlueLight : unselectedBorder, 
+                        predictionRaw === 1 ? mBlueDark : unselectedBorder, 
+                        predictionRaw === 2 ? mRed : unselectedBorder
+                    ], 
+                    borderWidth: 2 
+                }] 
+            },
+            options: { 
+                responsive: true, 
+                maintainAspectRatio: false,
+                cutout: '70%', 
+                plugins: { 
+                    legend: { 
+                        position: 'bottom', 
+                        labels: { 
+                            padding: 16, 
+                            usePointStyle: true, 
+                            pointStyle: 'rect', 
+                            font: { size: 11, weight: '800' },
+                            color: legendColor
+                        } 
+                    } 
+                } 
+            },
+            plugins: [{ 
+                id: 'centerText', 
+                afterDraw(chart) { 
+                    const { ctx, chartArea: { width, height, top, left } } = chart; 
+                    ctx.save(); 
+                    ctx.textAlign = 'center'; 
+                    ctx.textBaseline = 'middle'; 
+                    const cx = left + width / 2, cy = top + height / 2; 
+                    ctx.font = '900 22px monospace'; 
+                    ctx.fillStyle = isBatch ? mBlueDark : levelColors[predictionRaw]; 
+                    ctx.fillText(isBatch ? (batchCount + ' DATA') : diagnosis, cx, cy - 4); 
+                    ctx.font = '700 10px monospace'; 
+                    ctx.fillStyle = isLight ? '#64748b' : '#666666'; 
+                    ctx.fillText(isBatch ? 'DISTRIBUSI CSV BATCH' : 'DIAGNOSIS', cx, cy + 20); 
+                    ctx.restore(); 
+                } 
+            }]
+        });
+
+        renderBatchLineChart(isLight);
+    }
+
+    renderChart();
+    window.addEventListener('themechanged', renderChart);
+
+    function initResult3D() {
+        const mount = document.getElementById('result3d');
+        if (!mount || typeof THREE === 'undefined') return;
+
+        const rootStyles = getComputedStyle(document.documentElement);
+        const palette = [
+            rootStyles.getPropertyValue('--accent-emerald').trim() || '#16a34a',
+            rootStyles.getPropertyValue('--m-blue-dark').trim() || '#1c69d4',
+            rootStyles.getPropertyValue('--m-red').trim() || '#e22718'
+        ];
+        const accent = palette[predictionRaw] || palette[0];
+        const width = mount.clientWidth || 420;
+        const height = mount.clientHeight || 320;
+        const quality = window.innerWidth < 720 ? 1 : Math.min(window.devicePixelRatio || 1, 2);
+
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(42, width / height, 0.1, 100);
+        camera.position.set(0, 0.08, 5.2);
+
+        const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+        renderer.setSize(width, height);
+        renderer.setPixelRatio(quality);
+        mount.appendChild(renderer.domElement);
+
+        const group = new THREE.Group();
+        scene.add(group);
+
+        scene.add(new THREE.AmbientLight(0xffffff, 0.9));
+        const keyLight = new THREE.PointLight(accent, 1.8, 8);
+        keyLight.position.set(2.6, 2.2, 3);
+        scene.add(keyLight);
+
+        const phoneBody = new THREE.Mesh(
+            new THREE.BoxGeometry(1.5, 2.72, 0.16),
+            new THREE.MeshPhysicalMaterial({
+                color: 0x0b0f18,
+                metalness: 0.42,
+                roughness: 0.28,
+                clearcoat: 0.9,
+                clearcoatRoughness: 0.18
+            })
+        );
+        group.add(phoneBody);
+
+        const screen = new THREE.Mesh(
+            new THREE.PlaneGeometry(1.32, 2.44),
+            new THREE.MeshBasicMaterial({
+                color: new THREE.Color(accent),
+                transparent: true,
+                opacity: 0.18,
+                side: THREE.DoubleSide
+            })
+        );
+        screen.position.z = 0.085;
+        group.add(screen);
+
+        const ring = new THREE.Mesh(
+            new THREE.TorusGeometry(0.74, 0.018, 16, 96),
+            new THREE.MeshBasicMaterial({ color: new THREE.Color(accent), transparent: true, opacity: 0.86 })
+        );
+        ring.position.z = 0.12;
+        group.add(ring);
+
+        const innerRing = ring.clone();
+        innerRing.scale.setScalar(0.62);
+        innerRing.material = ring.material.clone();
+        innerRing.material.opacity = 0.42;
+        group.add(innerRing);
+
+        const pointsGeometry = new THREE.BufferGeometry();
+        const positions = [];
+        for (let i = 0; i < 80; i++) {
+            const radius = 1.15 + Math.random() * 1.25;
+            const angle = Math.random() * Math.PI * 2;
+            positions.push(Math.cos(angle) * radius, (Math.random() - 0.5) * 3.2, Math.sin(angle) * radius * 0.22);
+        }
+        pointsGeometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+        const particles = new THREE.Points(
+            pointsGeometry,
+            new THREE.PointsMaterial({
+                color: new THREE.Color(accent),
+                size: 0.035,
+                transparent: true,
+                opacity: 0.72
+            })
+        );
+        group.add(particles);
+
+        const bars = new THREE.Group();
+        for (let i = 0; i < 8; i++) {
+            const barHeight = 0.18 + (values[(i + 2) % values.length] || 1) / 24;
+            const bar = new THREE.Mesh(
+                new THREE.BoxGeometry(0.065, barHeight, 0.04),
+                new THREE.MeshBasicMaterial({ color: new THREE.Color(accent), transparent: true, opacity: 0.75 })
+            );
+            bar.position.set(-0.45 + i * 0.13, -0.58 + barHeight / 2, 0.14);
+            bars.add(bar);
+        }
+        group.add(bars);
+
+        let mouseX = 0;
+        let mouseY = 0;
+        window.addEventListener('mousemove', (event) => {
+            mouseX = (event.clientX / window.innerWidth - 0.5) * 0.35;
+            mouseY = (event.clientY / window.innerHeight - 0.5) * 0.25;
+        });
+
+        function resizeResult3D() {
+            const nextWidth = mount.clientWidth || width;
+            const nextHeight = mount.clientHeight || height;
+            camera.aspect = nextWidth / nextHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(nextWidth, nextHeight);
+        }
+
+        window.addEventListener('resize', resizeResult3D);
+
+        function animateResult3D() {
+            requestAnimationFrame(animateResult3D);
+            group.rotation.y += 0.006;
+            group.rotation.x += (mouseY - group.rotation.x) * 0.035;
+            group.rotation.y += (mouseX - group.rotation.y) * 0.012;
+            ring.rotation.z += 0.018;
+            innerRing.rotation.z -= 0.012;
+            particles.rotation.y -= 0.003;
+            renderer.render(scene, camera);
+        }
+
+        animateResult3D();
+    }
+
+    initResult3D();
+
+    // Modern ML Confetti
+    const container = document.getElementById('confetti');
+    const colors = [mBlueDark, '#ffffff', '#34d399', '#6366f1'];
+    for(let i=0; i<40; i++){
+        const el = document.createElement('div');
+        el.classList.add('confetti');
+        el.style.left = Math.random()*100+'%';
+        el.style.background = colors[Math.floor(Math.random()*colors.length)];
+        el.style.animationDuration = (Math.random()*2+1.5)+'s';
+        el.style.animationDelay = Math.random()*0.8+'s';
+        el.style.width = (Math.random()*4+4)+'px';
+        el.style.height = (Math.random()*10+8)+'px';
+        container.appendChild(el);
+    }
+    setTimeout(()=>container.remove(), 4000);
+
+    // Export PDF — pure jsPDF v3 — NO html2canvas
+    // VERSION_CHECK: v3_pure_jspdf_2026
+    function exportPDF() {
+        const btn = document.getElementById('exportBtn');
+        const originalText = btn.textContent;
+        btn.textContent = '⏳ GENERATING...';
+        btn.disabled = true;
+
+        const resetBtn = (msg) => {
+            if (msg) { console.error('[PDF FAIL]', msg); alert('❌ PDF Error:\n' + msg); }
+            btn.textContent = originalText;
+            btn.disabled = false;
+        };
+
+        if (!window.jspdf || !window.jspdf.jsPDF) {
+            return resetBtn('jsPDF library tidak termuat. Pastikan internet tersambung lalu refresh halaman.');
+        }
+
+        try {
+            const { jsPDF } = window.jspdf;
+            const pdf = new jsPDF('p', 'mm', 'a4');
+            const W = 210, H = 297;
+            const margin = 14;
+            const col = W - margin * 2;
+            let y = margin;
+
+            // ── Warna tema ──────────────────────────────────────────
+            const WHITE  = [255, 255, 255];
+            const MUTED  = [100, 100, 100];
+            const TEXT_D = [20, 30, 45];
+            const TEXT_M = [71, 85, 105];
+            const SOFT_BG = [248, 250, 252];
+            const BORDER = [203, 213, 225];
+            const GREEN_G = [22, 163, 74];
+            const BLUE_L = [0, 188, 212];
+            const BLUE_D = [28, 105, 212];
+            const RED_M  = [226, 39, 24];
+            const levelColors = { 0: GREEN_G, 1: BLUE_D, 2: RED_M };
+            const diagColor = levelColors[predictionRaw] || GREEN_G;
+            const pageLimit = H - 20;
+
+            const ensureSpace = (height) => {
+                if (y + height > pageLimit) {
+                    pdf.addPage();
+                    y = margin;
+                }
+            };
+
+            const sectionTitle = (title) => {
+                ensureSpace(11);
+                pdf.setFont('helvetica', 'bold');
+                pdf.setFontSize(9);
+                pdf.setTextColor(...TEXT_D);
+                pdf.text(title, margin, y);
+                pdf.setDrawColor(...BLUE_D);
+                pdf.setLineWidth(0.35);
+                pdf.line(margin, y + 2.5, W - margin, y + 2.5);
+                y += 7;
+            };
+
+            const formatFeatureValue = (key, value, forAverage = false) => {
+                const safeValue = Number(value) || 0;
+                if (key === 'gender') {
+                    return forAverage ? Math.round(safeValue * 100) + '% LAKI-LAKI' : (safeValue === 1 ? 'LAKI-LAKI' : 'PEREMPUAN');
+                }
+                const rounded = Math.round(safeValue * 10) / 10;
+                if (['daily_screen_time_hours', 'social_media_hours', 'gaming_hours', 'work_study_hours', 'sleep_hours', 'weekend_screen_time'].includes(key)) {
+                    return rounded + ' JAM';
+                }
+                if (key === 'age') return Math.round(safeValue) + ' THN';
+                if (key === 'notifications_per_day') return Math.round(safeValue) + ' NOTIF';
+                if (key === 'app_opens_per_day') return Math.round(safeValue) + ' KALI';
+                return String(rounded);
+            };
+
+            const recommendationText = () => {
+                if (isBatch) {
+                    return 'Laporan batch ini merangkum distribusi level hasil CSV, rata-rata fitur utama, dan detail diagnosis pada setiap baris input.';
+                }
+                if (diagnosis === 'TINGGI') {
+                    return 'Indikasi kecanduan berada pada level tinggi. Disarankan mengevaluasi durasi penggunaan harian, mengurangi aktivitas non-prioritas, dan membuat batas waktu aplikasi secara konsisten.';
+                }
+                if (diagnosis === 'SEDANG') {
+                    return 'Indikasi kecanduan berada pada level sedang. Pola penggunaan masih dapat dikendalikan, namun screen time, notifikasi, dan kebiasaan weekend perlu dipantau agar tidak meningkat.';
+                }
+                return 'Indikasi kecanduan berada pada level rendah. Pola penggunaan relatif terkendali, tetapi kebiasaan sehat seperti tidur cukup dan jeda layar tetap perlu dipertahankan.';
+            };
+
+            // Solid blue bar top
+            pdf.setFillColor(...BLUE_D); pdf.rect(margin, y, col, 2, 'F');
+            y += 6;
+
+            // ── HEADER ──────────────────────────────────────────────
+            pdf.setTextColor(...BLUE_D);
+            pdf.setFont('helvetica', 'bold');
+            pdf.setFontSize(18);
+            pdf.text('SMARTADDICT ML', margin, y);
+            pdf.setFontSize(8);
+            pdf.setTextColor(...TEXT_M);
+            pdf.text('LAPORAN HASIL PREDIKSI KECANDUAN SMARTPHONE', margin, y + 6);
+            const now = new Date();
+            pdf.text('GENERATED: ' + now.toLocaleDateString('id-ID', {day:'2-digit',month:'long',year:'numeric'}) + '  ' + now.toLocaleTimeString('id-ID'), margin, y + 11);
+            pdf.setFontSize(7);
+            pdf.setTextColor(...MUTED);
+            pdf.text('USER: ' + String(reportUser || '-').toUpperCase(), W - margin, y + 2, { align: 'right' });
+            pdf.text('MODE: ' + (inputMethod === 'csv' ? 'UPLOAD CSV' : 'INPUT MANUAL'), W - margin, y + 7, { align: 'right' });
+            pdf.text('MODEL VERSION: ' + String(activeModelVersion || 'unknown').toUpperCase(), W - margin, y + 12, { align: 'right' });
+            y += 20;
+
+            pdf.setFillColor(...SOFT_BG);
+            pdf.setDrawColor(...BORDER);
+            pdf.roundedRect(margin, y, col, 14, 1.5, 1.5, 'FD');
+            pdf.setFont('helvetica', 'bold');
+            pdf.setFontSize(7);
+            pdf.setTextColor(...TEXT_D);
+            pdf.text('RINGKASAN LAPORAN', margin + 4, y + 5);
+            pdf.setFont('helvetica', 'normal');
+            pdf.setTextColor(...TEXT_M);
+            pdf.text('Hasil ini dibuat dari input ' + (isBatch ? batchCount + ' baris CSV' : 'manual satu pengguna') + ' menggunakan model ' + String(result_model || '-').toUpperCase() + '.', margin + 4, y + 10);
+            y += 20;
+
+            // ── DIAGNOSIS UTAMA ──────────────────────────────────────
+            const heroAccent = isBatch ? BLUE_D : diagColor;
+            const heroTitle = isBatch ? 'BATCH CSV' : diagnosis;
+            const heroSubtitle = isBatch ? 'LAPORAN DISTRIBUSI LEVEL KECANDUAN SMARTPHONE' : 'LEVEL DIAGNOSIS KECANDUAN SMARTPHONE';
+
+            pdf.setFillColor(15, 15, 15);
+            pdf.rect(margin, y, col, 24, 'F');
+            pdf.setDrawColor(...heroAccent);
+            pdf.setLineWidth(0.5);
+            pdf.rect(margin, y, col, 24);
+            pdf.setFillColor(...heroAccent); pdf.rect(margin, y, col, 1, 'F');
+            pdf.setFont('helvetica', 'bold');
+            pdf.setFontSize(22);
+            pdf.setTextColor(...heroAccent);
+            pdf.text(heroTitle, W / 2, y + 12, { align: 'center' });
+            pdf.setFontSize(7);
+            pdf.setTextColor(...MUTED);
+            pdf.text(heroSubtitle, W / 2, y + 19, { align: 'center' });
+            y += 30;
+
+            // ── SUMMARY STATS ────────────────────────────────────────
+            const stats = isBatch ? [
+                { label: 'ALGORITMA ML', value: String(result_model || 'ML').toUpperCase() },
+                { label: 'TOTAL BARIS', value: batchCount + ' DATA' },
+                { label: 'RATA-RATA SCREEN TIME', value: Math.round(values[2]) + ' JAM/HARI' },
+                { label: 'RATA-RATA USIA', value: Math.round(values[0]) + ' TAHUN' },
+            ] : [
+                { label: 'ALGORITMA ML', value: String(result_model || 'ML').toUpperCase() },
+                { label: 'SCREEN TIME', value: Math.round(values[2]) + ' JAM/HARI' },
+                { label: 'USIA PENGGUNA', value: Math.round(values[0]) + ' TAHUN' },
+                { label: 'JAM TIDUR', value: Math.round(values[6]) + ' JAM' },
+            ];
+            const statW = col / stats.length;
+            stats.forEach((s, i) => {
+                const sx = margin + i * statW;
+                pdf.setFillColor(12, 12, 12);
+                pdf.rect(sx, y, statW - 2, 18, 'F');
+                pdf.setDrawColor(40, 40, 40);
+                pdf.setLineWidth(0.3);
+                pdf.rect(sx, y, statW - 2, 18);
+                pdf.setFont('helvetica', 'bold');
+                pdf.setFontSize(10);
+                pdf.setTextColor(...WHITE);
+                pdf.text(s.value, sx + (statW - 2) / 2, y + 9, { align: 'center' });
+                pdf.setFontSize(6);
+                pdf.setTextColor(...MUTED);
+                pdf.text(s.label, sx + (statW - 2) / 2, y + 14, { align: 'center' });
+            });
+            y += 24;
+
+            // ── CHART (GAUGE) ────────────────────────────────────────
+            const el = document.getElementById('gaugeChart');
+            if (el && el.width > 0 && el.height > 0) {
+                const imgData = el.toDataURL('image/png');
+                const cW = 68;
+                const cH = cW * el.height / el.width;
+                
+                ensureSpace(cH + 16);
+                
+                pdf.setFillColor(10, 10, 10);
+                pdf.rect(margin + (col - cW) / 2, y, cW, cH + 10, 'F');
+                pdf.setDrawColor(35, 35, 35);
+                pdf.setLineWidth(0.3);
+                pdf.rect(margin + (col - cW) / 2, y, cW, cH + 10);
+                
+                pdf.setFontSize(6);
+                pdf.setFont('helvetica', 'bold');
+                pdf.setTextColor(...MUTED);
+                pdf.text(isBatch ? 'DISTRIBUSI LEVEL KECANDUAN (CSV)' : 'DISTRIBUSI LEVEL KECANDUAN', margin + (col - cW) / 2 + 3, y + 5);
+                
+                pdf.addImage(imgData, 'PNG', margin + (col - cW) / 2 + 1, y + 7, cW - 2, cH);
+                y += cH + 15;
+            }
+
+            if (isBatch) {
+                const trendEl = document.getElementById('batchLineChart');
+                if (trendEl && trendEl.width > 0 && trendEl.height > 0) {
+                    const trendImg = trendEl.toDataURL('image/png');
+                    const trendW = col;
+                    const trendH = Math.min(76, trendW * trendEl.height / trendEl.width);
+
+                    sectionTitle('GRAFIK POLA FITUR CSV');
+                    ensureSpace(trendH + 10);
+                    pdf.setFillColor(...SOFT_BG);
+                    pdf.setDrawColor(...BORDER);
+                    pdf.rect(margin, y, trendW, trendH + 6, 'FD');
+                    pdf.addImage(trendImg, 'PNG', margin + 2, y + 3, trendW - 4, trendH);
+                    y += trendH + 12;
+                }
+            }
+
+            // ── PARAMETER COMPARISON TABLE IN PDF ────────────────────────
+            if (isBatch) {
+                sectionTitle('RINGKASAN BATCH CSV');
+                ensureSpace(28);
+                const batchSummary = [
+                    { label: 'RENDAH', value: distribution.Rendah || 0, color: GREEN_G },
+                    { label: 'SEDANG', value: distribution.Sedang || 0, color: BLUE_D },
+                    { label: 'TINGGI', value: distribution.Tinggi || 0, color: RED_M },
+                    { label: 'GENDER L/P', value: (batchStats.male_count || 0) + '/' + (batchStats.female_count || 0), color: TEXT_D },
+                ];
+                const cardW = col / batchSummary.length;
+                batchSummary.forEach((item, i) => {
+                    const sx = margin + i * cardW;
+                    pdf.setFillColor(...SOFT_BG);
+                    pdf.setDrawColor(...BORDER);
+                    pdf.rect(sx, y, cardW - 2, 18, 'FD');
+                    pdf.setFont('helvetica', 'bold');
+                    pdf.setFontSize(11);
+                    pdf.setTextColor(...item.color);
+                    pdf.text(String(item.value), sx + (cardW - 2) / 2, y + 8, { align: 'center' });
+                    pdf.setFontSize(6);
+                    pdf.setTextColor(...TEXT_M);
+                    pdf.text(item.label, sx + (cardW - 2) / 2, y + 13.5, { align: 'center' });
+                });
+                y += 26;
+            }
+
+            if (Array.isArray(comparisonResults) && comparisonResults.length) {
+                sectionTitle('PERBANDINGAN HASIL ANTAR MODEL');
+                const comparisonRowH = 7;
+                ensureSpace(8 + comparisonResults.length * comparisonRowH);
+                pdf.setFillColor(15, 15, 15);
+                pdf.rect(margin, y, col, comparisonRowH, 'F');
+                pdf.setFont('helvetica', 'bold');
+                pdf.setFontSize(6.5);
+                pdf.setTextColor(...WHITE);
+                pdf.text('MODEL', margin + 4, y + 4.5);
+                pdf.text('HASIL DIAGNOSIS', margin + col * 0.58, y + 4.5, { align: 'center' });
+                pdf.text('CLASS RAW', margin + col - 4, y + 4.5, { align: 'right' });
+                y += comparisonRowH;
+
+                comparisonResults.forEach((item, i) => {
+                    ensureSpace(comparisonRowH + 2);
+                    const isSelected = String(item.model || '').toLowerCase() === String(result_model || '').toLowerCase();
+                    const rowFill = isSelected ? [238, 246, 255] : (i % 2 === 0 ? [248, 250, 252] : [255, 255, 255]);
+                    pdf.setFillColor(...rowFill);
+                    pdf.setDrawColor(...BORDER);
+                    pdf.rect(margin, y, col, comparisonRowH, 'FD');
+                    const modelLabel = String(item.model || '-').toUpperCase() + (isSelected ? ' (DIPILIH)' : '');
+                    const raw = Number(item.prediction_raw);
+                    const rowColor = raw === 0 ? GREEN_G : (raw === 1 ? BLUE_D : (raw === 2 ? RED_M : TEXT_M));
+                    pdf.setFont('helvetica', 'bold');
+                    pdf.setFontSize(6.5);
+                    pdf.setTextColor(...TEXT_D);
+                    pdf.text(modelLabel, margin + 4, y + 4.5);
+                    pdf.setTextColor(...rowColor);
+                    pdf.text(String(item.diagnosis || '-').toUpperCase(), margin + col * 0.58, y + 4.5, { align: 'center' });
+                    pdf.setTextColor(...TEXT_M);
+                    pdf.text(String(item.prediction_raw ?? '-'), margin + col - 4, y + 4.5, { align: 'right' });
+                    y += comparisonRowH;
+                });
+                y += 6;
+            }
+
+            console.log('[PDF] Rendering comparison table...');
+            sectionTitle(isBatch ? 'RATA-RATA PARAMETER BATCH' : 'EVALUASI PERBANDINGAN PARAMETER FITUR');
+
+            // Draw Table Header
+            pdf.setFillColor(15, 15, 15);
+            pdf.rect(margin, y, col, 7, 'F');
+            pdf.setFont('helvetica', 'bold');
+            pdf.setFontSize(6.5);
+            pdf.setTextColor(...MUTED);
+            pdf.text('FITUR PARAMETER', margin + 4, y + 4.5);
+            pdf.text('INPUT ANDA', margin + col / 2 - 10, y + 4.5, { align: 'right' });
+            pdf.text('RATA-RATA GLOBAL', margin + col * 3 / 4 - 10, y + 4.5, { align: 'right' });
+            pdf.text('INDEX PREVALENSI', margin + col - 4, y + 4.5, { align: 'right' });
+            y += 7;
+
+            // Draw Table Rows
+            const questionLabels = ['USIA', 'GENDER', 'SCREEN TIME', 'MEDIA SOSIAL', 'GAMING', 'KERJA/BELAJAR', 'JAM TIDUR', 'NOTIFIKASI', 'BUKA APLIKASI', 'WEEKEND SCREEN TIME'];
+            const questionKeys = ['age', 'gender', 'daily_screen_time_hours', 'social_media_hours', 'gaming_hours', 'work_study_hours', 'sleep_hours', 'notifications_per_day', 'app_opens_per_day', 'weekend_screen_time'];
+            
+            questionKeys.forEach((key, i) => {
+                ensureSpace(8);
+                const even = i % 2 === 0;
+                pdf.setFillColor(even ? 248 : 255, even ? 250 : 255, even ? 252 : 255);
+                pdf.setDrawColor(...BORDER);
+                pdf.rect(margin, y, col, 7, 'FD');
+                
+                // Elegant brand stripe on each row
+                pdf.setFillColor(...BLUE_D);
+                pdf.rect(margin, y, 1.5, 7, 'F');
+                
+                // Label
+                pdf.setFont('helvetica', 'bold');
+                pdf.setFontSize(6.5);
+                pdf.setTextColor(...TEXT_D);
+                pdf.text(questionLabels[i], margin + 4, y + 4.5);
+                
+                // Format values
+                let userDisp = '';
+                let avgDisp = '';
+                let compDisp = '';
+                
+                const userVal = values[i];
+                const avgVal = averages[i];
+                
+                if (key === 'gender') {
+                    userDisp = userVal === 1 ? 'LAKI-LAKI' : 'PEREMPUAN';
+                    avgDisp = Math.round(avgVal * 100) + '% LAKI-LAKI';
+                    compDisp = 'KATEGORI';
+                } else {
+                    let unit = '';
+                    if (['daily_screen_time_hours', 'social_media_hours', 'gaming_hours', 'work_study_hours', 'sleep_hours', 'weekend_screen_time'].includes(key)) {
+                        unit = ' JAM';
+                    } else if (key === 'age') {
+                        unit = ' THN';
+                    } else if (key === 'notifications_per_day') {
+                        unit = ' NOTIF';
+                    } else if (key === 'app_opens_per_day') {
+                        unit = ' KALI';
+                    }
+                    userDisp = Math.round(userVal) + unit;
+                    avgDisp = Math.round(avgVal) + unit;
+                    const pct = avgVal > 0 ? Math.round((userVal / avgVal) * 100) : 0;
+                    compDisp = pct + '%';
+                }
+                
+                // Draw cells
+                pdf.setFont('helvetica', 'normal');
+                pdf.setFontSize(6.5);
+                pdf.setTextColor(...TEXT_M);
+                pdf.text(userDisp, margin + col / 2 - 10, y + 4.5, { align: 'right' });
+                pdf.text(avgDisp, margin + col * 3 / 4 - 10, y + 4.5, { align: 'right' });
+                
+                pdf.setFont('helvetica', 'bold');
+                if (key !== 'gender') {
+                    const pct = avgVal > 0 ? (userVal / avgVal * 100) : 0;
+                    if (pct > 120) pdf.setTextColor(...RED_M);
+                    else if (pct < 80) pdf.setTextColor(...BLUE_L);
+                    else pdf.setTextColor(...BLUE_D);
+                } else {
+                    pdf.setTextColor(...TEXT_D);
+                }
+                pdf.text(compDisp, margin + col - 4, y + 4.5, { align: 'right' });
+                
+                y += 7;
+            });
+
+            if (isBatch && batchRows.length) {
+                y += 8;
+                sectionTitle('DETAIL HASIL PER BARIS CSV');
+
+                const batchHeaders = ['NO', 'USIA', 'GENDER', 'SCREEN', 'SOSMED', 'GAME', 'KERJA', 'TIDUR', 'NOTIF', 'APPS', 'WEEKEND', 'DIAG'];
+                const batchColWidths = [10, 14, 16, 16, 16, 14, 16, 14, 14, 14, 16, 20];
+                const batchRowHeight = 6;
+                const batchTableWidth = batchColWidths.reduce((sum, width) => sum + width, 0);
+                const batchX = margin;
+
+                pdf.setFillColor(15, 15, 15);
+                pdf.rect(batchX, y, batchTableWidth, batchRowHeight, 'F');
+                let cursorX = batchX;
+                pdf.setFont('helvetica', 'bold');
+                pdf.setFontSize(5.8);
+                pdf.setTextColor(...MUTED);
+                batchHeaders.forEach((header, index) => {
+                    pdf.text(header, cursorX + batchColWidths[index] / 2, y + 3.9, { align: 'center' });
+                    cursorX += batchColWidths[index];
+                });
+                y += batchRowHeight;
+
+                batchRows.forEach((row, rowIndex) => {
+                    if (y + batchRowHeight > pageLimit) {
+                        pdf.addPage();
+                        y = margin;
+                        pdf.setFillColor(15, 15, 15);
+                        pdf.rect(batchX, y, batchTableWidth, batchRowHeight, 'F');
+                        let headerX = batchX;
+                        pdf.setFont('helvetica', 'bold');
+                        pdf.setFontSize(5.8);
+                        pdf.setTextColor(...MUTED);
+                        batchHeaders.forEach((header, index) => {
+                            pdf.text(header, headerX + batchColWidths[index] / 2, y + 3.9, { align: 'center' });
+                            headerX += batchColWidths[index];
+                        });
+                        y += batchRowHeight;
+                    }
+
+                    const even = rowIndex % 2 === 0;
+                    pdf.setFillColor(even ? 12 : 8, even ? 12 : 8, even ? 12 : 8);
+                    pdf.rect(batchX, y, batchTableWidth, batchRowHeight, 'F');
+                    pdf.setDrawColor(35, 35, 35);
+                    pdf.rect(batchX, y, batchTableWidth, batchRowHeight);
+
+                    const rowValues = [
+                        row.row_number,
+                        Math.round(row.values[0]) + ' THN',
+                        row.values[1] === 1 ? 'L' : 'P',
+                        Math.round(row.values[2]) + ' J',
+                        Math.round(row.values[3]) + ' J',
+                        Math.round(row.values[4]) + ' J',
+                        Math.round(row.values[5]) + ' J',
+                        Math.round(row.values[6]) + ' J',
+                        Math.round(row.values[7]) + '',
+                        Math.round(row.values[8]) + '',
+                        Math.round(row.values[9]) + ' J',
+                        row.diagnosis.toUpperCase(),
+                    ];
+
+                    cursorX = batchX;
+                    rowValues.forEach((value, index) => {
+                        pdf.setFont('helvetica', index === 11 ? 'bold' : 'normal');
+                        if (index === 11) {
+                            const rowColor = row.diagnosis === 'Rendah' ? GREEN_G : (row.diagnosis === 'Sedang' ? BLUE_D : RED_M);
+                            pdf.setTextColor(...rowColor);
+                        } else {
+                            pdf.setTextColor(...WHITE);
+                        }
+                        pdf.text(String(value), cursorX + batchColWidths[index] / 2, y + 3.9, { align: 'center' });
+                        cursorX += batchColWidths[index];
+                    });
+
+                    y += batchRowHeight;
+                });
+            }
+
+            // ── FOOTER ────────────────────────────────────────────────
+            /*
+            y += 6;
+            if (y + 12 > H - margin) { pdf.addPage(); y = margin; }
+            pdf.setFillColor(...BLUE_D); pdf.rect(margin, y, col, 0.5, 'F');
+            y += 4;
+            pdf.setFontSize(6);
+            pdf.setFont('helvetica', 'normal');
+            pdf.setTextColor(...MUTED);
+            pdf.text('SMARTADDICT ML — LAPORAN AKADEMIK DASAR ILMU DATA', W/2, y, { align: 'center' });
+
+            */
+            y += 8;
+            sectionTitle('CATATAN INTERPRETASI');
+            ensureSpace(28);
+            pdf.setFillColor(...SOFT_BG);
+            pdf.setDrawColor(...BORDER);
+            pdf.rect(margin, y, col, 24, 'FD');
+            pdf.setFont('helvetica', 'normal');
+            pdf.setFontSize(7);
+            pdf.setTextColor(...TEXT_M);
+            const notes = pdf.splitTextToSize(recommendationText() + ' Laporan ini bersifat pendukung analisis akademik dan tidak menggantikan evaluasi profesional.', col - 8);
+            pdf.text(notes, margin + 4, y + 6);
+            y += 30;
+
+            const totalPages = pdf.getNumberOfPages();
+            for (let pageNo = 1; pageNo <= totalPages; pageNo++) {
+                pdf.setPage(pageNo);
+                pdf.setDrawColor(...BLUE_D);
+                pdf.setLineWidth(0.35);
+                pdf.line(margin, H - 13, W - margin, H - 13);
+                pdf.setFont('helvetica', 'normal');
+                pdf.setFontSize(6);
+                pdf.setTextColor(...MUTED);
+                pdf.text('SMARTADDICT ML - LAPORAN AKADEMIK DASAR ILMU DATA', margin, H - 8);
+                pdf.text('HAL ' + pageNo + '/' + totalPages, W - margin, H - 8, { align: 'right' });
+            }
+
+            console.log('[PDF] Saving file...');
+            pdf.save('SMARTADDICT_LAPORAN_PREDIKSI.pdf');
+            console.log('[PDF] Done!');
+            resetBtn();
+
+        } catch (err) {
+            resetBtn(err.message + '\n\nStack: ' + err.stack);
+        }
+    }
+    window.exportPDF = exportPDF;
+</script>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,621 @@
+{% extends "base.html" %}
+{% block title %}LOG RIWAYAT UTAMA - Smart Addict ML{% endblock %}
+{% block head %}
+<style>
+    .content {
+        position: relative;
+        z-index: 1;
+        max-width: 1050px;
+        margin: 0 auto;
+        padding: 40px 24px 80px;
+    }
+
+    .page-header {
+        text-align: left;
+        margin-bottom: 40px;
+        border-left: 4px solid var(--m-red);
+        padding-left: 20px;
+        animation: fadeInUp 0.4s ease forwards;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 16px;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .page-header::after {
+        content: '';
+        position: absolute;
+        right: 0;
+        top: 0;
+        width: min(420px, 48vw);
+        height: 130px;
+        background:
+            radial-gradient(circle at 75% 35%, rgba(226, 39, 24, 0.12), transparent 35%),
+            repeating-linear-gradient(90deg, transparent 0 18px, rgba(0, 188, 212, 0.08) 18px 19px);
+        mask-image: linear-gradient(90deg, transparent, #000 28%, transparent);
+        pointer-events: none;
+    }
+
+    .header-text h1 {
+        font-size: 2.2rem;
+        font-weight: 900;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        margin-bottom: 6px;
+        color: var(--text-primary);
+    }
+
+    .admin-badge {
+        display: inline-block;
+        padding: 6px 16px;
+        border-radius: 0px;
+        font-size: 0.72rem;
+        font-weight: 900;
+        background: transparent;
+        color: var(--m-red);
+        border: 1px solid var(--m-red);
+        letter-spacing: 2px;
+        text-transform: uppercase;
+    }
+
+    .header-actions {
+        display: flex;
+        gap: 16px;
+        align-items: center;
+    }
+
+    .count-badge {
+        padding: 8px 16px;
+        border-radius: 0px;
+        font-size: 0.75rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 1.5px;
+        background: transparent;
+        border: 1px solid var(--m-blue-light);
+        color: var(--m-blue-light);
+    }
+
+    .btn-danger {
+        padding: 8px 18px;
+        border-radius: 0px;
+        font-size: 0.75rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 1.5px;
+        background: transparent;
+        border: 1px solid var(--m-red);
+        color: var(--m-red);
+        cursor: pointer;
+        font-family: inherit;
+        transition: all 0.3s ease;
+    }
+
+    .btn-danger:hover {
+        background: var(--m-red);
+        color: var(--bg-card);
+    }
+
+    .btn-export {
+        padding: 8px 18px;
+        border-radius: 0px;
+        font-size: 0.75rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 1.5px;
+        background: transparent;
+        border: 1px solid var(--m-blue-light);
+        color: var(--m-blue-light);
+        text-decoration: none;
+        transition: all 0.3s ease;
+    }
+
+    .btn-export:hover {
+        background: var(--m-blue-light);
+        color: var(--bg-card);
+    }
+
+    .filter-bar {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+        margin-bottom: 24px;
+        animation: fadeInUp 0.4s ease 0.1s forwards;
+        opacity: 0;
+        padding: 14px;
+        background: color-mix(in srgb, var(--bg-card) 84%, transparent);
+        border: 1px solid var(--border-card);
+        backdrop-filter: blur(14px);
+        -webkit-backdrop-filter: blur(14px);
+    }
+
+    .filter-bar select, .filter-bar input {
+        padding: 12px 16px;
+        border-radius: 0px;
+        font-size: 0.8rem;
+        font-weight: 700;
+        font-family: inherit;
+        background: var(--bg-card);
+        border: 1px solid var(--border-card);
+        color: var(--text-primary);
+        outline: none;
+        transition: all 0.25s ease;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+
+    .filter-bar select:focus, .filter-bar input:focus {
+        border-color: var(--text-primary);
+    }
+
+    .filter-bar input {
+        flex: 1;
+        min-width: 200px;
+    }
+
+    .filter-bar select {
+        min-width: 170px;
+        appearance: none;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%23ffffff' viewBox='0 0 16 16'%3E%3Cpath d='M4.646 5.646a.5.5 0 0 1 .708 0L8 8.293l2.646-2.647a.5.5 0 0 1 .708.708l-3 3a.5.5 0 0 1-.708 0l-3-3a.5.5 0 0 1 0-.708z'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 14px center;
+        padding-right: 36px;
+    }
+
+    .filter-bar select option {
+        background: var(--bg-card);
+        color: var(--text-primary);
+    }
+
+    .table-container {
+        border-radius: 0px;
+        background: color-mix(in srgb, var(--bg-card) 88%, transparent);
+        border: 1px solid var(--border-card);
+        overflow-x: auto;
+        animation: fadeInUp 0.4s ease 0.15s forwards;
+        opacity: 0;
+        position: relative;
+        box-shadow: var(--card-shadow);
+        backdrop-filter: blur(14px);
+        -webkit-backdrop-filter: blur(14px);
+        transition: border-color 0.3s ease, box-shadow 0.3s ease, transform 0.3s ease;
+    }
+
+    .table-container::before {
+        content: '';
+        position: absolute;
+        top: -1px; left: -1px; right: -1px;
+        height: 2px;
+        background: transparent;
+        transition: background 0.3s ease;
+    }
+    .table-container:hover::before {
+        background: var(--m-blue-dark);
+    }
+
+    .table-container:hover {
+        border-color: var(--m-blue-light);
+        box-shadow: 0 18px 46px rgba(0, 188, 212, 0.1);
+        transform: translateY(-3px);
+    }
+
+    .h-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.8rem;
+    }
+
+    .h-table th {
+        text-align: left;
+        padding: 12px 16px;
+        font-weight: 800;
+        font-size: 0.72rem;
+        text-transform: uppercase;
+        letter-spacing: 1.5px;
+        color: var(--text-primary);
+        border-bottom: 1px solid var(--border-card);
+        background: var(--bg-input);
+        position: sticky;
+        top: 0;
+        z-index: 1;
+    }
+
+    .h-table td {
+        padding: 14px 16px;
+        border-bottom: 1px solid var(--border-card);
+        color: var(--text-secondary);
+        letter-spacing: 0.5px;
+    }
+
+    .h-table tr:hover td {
+        color: var(--text-primary);
+        background: var(--nav-active-bg);
+        box-shadow: inset 3px 0 0 var(--m-blue-light);
+    }
+
+    .h-table tr:last-child td {
+        border-bottom: none;
+    }
+
+    .badge-sm {
+        padding: 6px 12px;
+        border-radius: 0px;
+        font-size: 0.7rem;
+        font-weight: 900;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        border: 1px solid transparent;
+        display: inline-block;
+    }
+
+    .badge-sm.r {
+        border-color: var(--accent-emerald);
+        color: var(--accent-emerald);
+        box-shadow: 0 0 16px rgba(52, 211, 153, 0.08);
+    }
+
+    .badge-sm.s {
+        border-color: var(--m-blue-dark);
+        color: var(--m-blue-dark);
+        box-shadow: 0 0 16px rgba(28, 105, 212, 0.1);
+    }
+
+    .badge-sm.t {
+        border-color: var(--m-red);
+        color: var(--m-red);
+        box-shadow: 0 0 16px rgba(226, 39, 24, 0.1);
+    }
+
+    .detail-btn {
+        background: none;
+        border: 1px solid var(--border-card);
+        color: var(--text-muted);
+        cursor: pointer;
+        padding: 6px 10px;
+        font-family: inherit;
+        font-size: 0.7rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        transition: all 0.2s ease;
+    }
+
+    .detail-btn:hover {
+        border-color: var(--m-blue-light);
+        color: var(--m-blue-light);
+        background: rgba(0, 188, 212, 0.06);
+    }
+
+    .history-detail-row {
+        display: none;
+    }
+
+    .history-detail-row.is-open {
+        display: table-row;
+    }
+
+    .history-detail-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+        gap: 8px;
+        padding: 14px;
+        background: var(--bg-primary);
+        border: 1px solid var(--border-card);
+    }
+
+    .history-detail-item {
+        padding: 10px;
+        background: var(--bg-input);
+        border: 1px solid var(--border-card);
+        font-family: monospace;
+        font-size: 0.7rem;
+    }
+
+    .history-detail-item span {
+        display: block;
+        color: var(--text-muted);
+        font-weight: 900;
+        text-transform: uppercase;
+        margin-bottom: 4px;
+    }
+
+    .history-detail-item strong {
+        color: var(--text-primary);
+        text-transform: uppercase;
+    }
+
+    .no-match {
+        text-align: center;
+        padding: 40px;
+        color: var(--text-muted);
+        font-size: 0.85rem;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        border: 1px dashed var(--border-card);
+        display: none;
+    }
+
+    /* Pagination Styles */
+    .pagination-container {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+        margin-top: 32px;
+        animation: fadeInUp 0.4s ease 0.2s forwards;
+        opacity: 1;
+    }
+
+    .pager-btn {
+        background: transparent;
+        border: 1px solid var(--border-card);
+        color: var(--text-secondary);
+        padding: 8px 16px;
+        font-family: inherit;
+        font-size: 0.72rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 1.5px;
+        transition: all 0.2s ease;
+        text-decoration: none;
+        display: inline-block;
+    }
+
+    .pager-btn:hover {
+        border-color: var(--text-primary);
+        color: var(--text-primary);
+        background: var(--nav-active-bg);
+    }
+
+    .pager-btn.disabled {
+        opacity: 0.25;
+        cursor: not-allowed;
+        pointer-events: none;
+    }
+
+    .page-numbers {
+        display: flex;
+        gap: 6px;
+    }
+
+    .page-num {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 32px;
+        height: 32px;
+        border: 1px solid var(--border-card);
+        color: var(--text-secondary);
+        font-size: 0.75rem;
+        font-weight: 800;
+        transition: all 0.2s ease;
+        text-decoration: none;
+    }
+
+    .page-num:hover {
+        border-color: var(--text-primary);
+        color: var(--text-primary);
+    }
+
+    .page-num.active {
+        border-color: var(--m-blue-light);
+        color: var(--m-blue-light);
+        background: var(--nav-active-bg);
+        box-shadow: 0 0 10px rgba(0, 102, 177, 0.15);
+    }
+
+    .filter-bar,
+    .table-container {
+        opacity: 1;
+    }
+
+    @keyframes fadeInUp {
+        from { opacity: 0.72; transform: translateY(14px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    @media (max-width: 768px) {
+        .content { padding: 32px 16px 60px; }
+        .page-header { flex-direction: column; align-items: flex-start; }
+        .page-header::after { display: none; }
+        .header-actions { width: 100%; flex-wrap: wrap; }
+        .filter-bar { flex-direction: column; }
+        .filter-bar select,
+        .filter-bar input { width: 100%; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<main class="content">
+    <div class="page-header">
+        <div class="header-text">
+            <h1>RIWAYAT DIAGNOSIS GLOBAL</h1>
+        </div>
+        <div class="header-actions">
+            <span class="admin-badge" style="margin-right: 8px;">🛡️ ADMIN</span>
+            <div class="count-badge">📊 <span id="vc">{{ predictions|length }}</span> / {{ pagination.total if pagination else predictions|length }} LOGS</div>
+            {% if predictions or selected_username %}
+            <a href="{{ url_for('admin.admin_history_download', username=selected_username) }}" class="btn-export">UNDUH CSV</a>
+            <form method="post" action="{{ url_for('admin.admin_clear_all') }}" style="display:inline" onsubmit="return confirm('APAKAH ANDA YAKIN INGIN MENGHAPUS SELURUH LOG RIWAYAT DI SISTEM?')">
+                <button type="submit" class="btn-danger">🗑️ HAPUS SEMUA RIWAYAT</button>
+            </form>
+            {% endif %}
+        </div>
+    </div>
+
+    {% with messages = get_flashed_messages() %}
+    {% if messages %}
+    {% for msg in messages %}
+    <div style="padding:16px 20px; border-radius:0px; margin-bottom:24px; text-align:left; background:rgba(0, 102, 177, 0.08); border:1px solid var(--m-blue-light); color:var(--text-primary); font-size:0.82rem; font-weight:800; text-transform:uppercase; letter-spacing:1.5px;">
+        {{ msg }}
+    </div>
+    {% endfor %}
+    {% endif %}
+    {% endwith %}
+
+    {% if predictions or selected_username %}
+    <div class="filter-bar">
+        <select id="fU" onchange="filterUser(this.value)">
+            <option value="">SEMUA PENGGUNA</option>
+            {% for u in all_users %}
+            <option value="{{ u.username }}" {% if selected_username == u.username %}selected{% endif %}>{{ u.username | upper }}</option>
+            {% endfor %}
+        </select>
+        <select id="fM" onchange="af()">
+            <option value="">SEMUA ALGORITMA ML</option>
+            <option>Decision Tree</option>
+            <option>K-Nearest Neighbors</option>
+            <option>Neural Network</option>
+            <option>Support Vector Machine</option>
+        </select>
+        <select id="fL" onchange="af()">
+            <option value="">SEMUA LEVEL</option>
+            <option value="Rendah">🟩 RENDAH</option>
+            <option value="Sedang">🟪 SEDANG</option>
+            <option value="Tinggi">🟥 TINGGI</option>
+        </select>
+        <input type="text" id="fS" placeholder="🔍 CARI NAMA USER ATAU KATA KUNCI..." oninput="af()">
+    </div>
+    
+    <div class="table-container">
+        <table class="h-table">
+            <thead>
+                <tr>
+                    <th>WAKTU SISTEM</th>
+                    <th>NAMA</th>
+                    <th>MODEL ML</th>
+                    <th>INPUTAN</th>
+                    <th>HASIL PREDIKSI</th>
+                    <th>TINDAKAN</th>
+                </tr>
+            </thead>
+            <tbody id="tb">
+                {% for p in predictions %}
+                {% set inputs = p.input_list %}
+                <tr data-m="{{ p.model_name }}" data-l="{{ p.result }}" data-t="{{ p.user.username }} {{ p.model_name }} {{ p.result }} {{ p.timestamp }}">
+                    <td style="color:var(--text-muted); font-family: monospace; font-size:0.75rem">{{ p.timestamp.strftime('%Y-%m-%d | %H:%M UTC') }}</td>
+                    <td style="font-weight:800; color:var(--text-primary); text-transform: uppercase;">{{ p.user.username }}</td>
+                    <td style="font-family: monospace; text-transform: uppercase; font-size: 0.75rem;">{{ p.model_name }}</td>
+                    <td style="font-size:0.72rem; color:var(--text-muted); font-family:monospace; max-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap" title="{{ inputs }}">
+                        [
+                        {% for val in inputs %}
+                          {{ val | round(1) }}{% if not loop.last %}, {% endif %}
+                        {% endfor %}
+                        ]
+                    </td>
+                    <td>
+                        <span class="badge-sm {% if p.result == 'Rendah' %}r{% elif p.result == 'Sedang' %}s{% else %}t{% endif %}">
+                            {{ p.result | upper }}
+                        </span>
+                    </td>
+                    <td><button type="button" class="detail-btn" onclick="toggleHistoryDetail('admin-detail-{{ p.id }}')">DETAIL</button></td>
+                </tr>
+                <tr id="admin-detail-{{ p.id }}" class="history-detail-row">
+                    <td colspan="6">
+                        <div class="history-detail-grid">
+                            <div class="history-detail-item"><span>Usia</span><strong>{{ inputs[0] | round | int if inputs|length > 0 else '-' }} thn</strong></div>
+                            <div class="history-detail-item"><span>Gender</span><strong>{% if inputs|length > 1 %}{{ 'Laki-laki' if inputs[1]|round|int == 1 else 'Perempuan' }}{% else %}-{% endif %}</strong></div>
+                            <div class="history-detail-item"><span>Screen Time</span><strong>{{ inputs[2] | round(1) if inputs|length > 2 else '-' }} jam</strong></div>
+                            <div class="history-detail-item"><span>Media Sosial</span><strong>{{ inputs[3] | round(1) if inputs|length > 3 else '-' }} jam</strong></div>
+                            <div class="history-detail-item"><span>Gaming</span><strong>{{ inputs[4] | round(1) if inputs|length > 4 else '-' }} jam</strong></div>
+                            <div class="history-detail-item"><span>Kerja/Belajar</span><strong>{{ inputs[5] | round(1) if inputs|length > 5 else '-' }} jam</strong></div>
+                            <div class="history-detail-item"><span>Tidur</span><strong>{{ inputs[6] | round(1) if inputs|length > 6 else '-' }} jam</strong></div>
+                            <div class="history-detail-item"><span>Notifikasi</span><strong>{{ inputs[7] | round | int if inputs|length > 7 else '-' }}</strong></div>
+                            <div class="history-detail-item"><span>Buka Aplikasi</span><strong>{{ inputs[8] | round | int if inputs|length > 8 else '-' }} kali</strong></div>
+                            <div class="history-detail-item"><span>Weekend</span><strong>{{ inputs[9] | round(1) if inputs|length > 9 else '-' }} jam</strong></div>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pagination -->
+    {% if pagination and pagination.pages > 1 %}
+    <div class="pagination-container">
+        {% if pagination.has_prev %}
+        <a href="{{ url_for('admin.admin_history', page=pagination.prev_num, username=selected_username) }}" class="pager-btn">◀ PREV</a>
+        {% else %}
+        <span class="pager-btn disabled">◀ PREV</span>
+        {% endif %}
+
+        <div class="page-numbers">
+            {% for page_num in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+                {% if page_num %}
+                    {% if page_num == pagination.page %}
+                    <span class="page-num active">{{ page_num }}</span>
+                    {% else %}
+                    <a href="{{ url_for('admin.admin_history', page=page_num, username=selected_username) }}" class="page-num">{{ page_num }}</a>
+                    {% endif %}
+                {% else %}
+                    <span style="display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; color: var(--text-muted);">...</span>
+                {% endif %}
+            {% endfor %}
+        </div>
+
+        {% if pagination.has_next %}
+        <a href="{{ url_for('admin.admin_history', page=pagination.next_num, username=selected_username) }}" class="pager-btn">NEXT ▶</a>
+        {% else %}
+        <span class="pager-btn disabled">NEXT ▶</span>
+        {% endif %}
+    </div>
+    {% endif %}
+    <!-- End Pagination -->
+    
+    <div class="no-match" id="nm">TIDAK ADA REKAMAN LOG DIAGNOSIS YANG COCOK DENGAN FILTER.</div>
+    {% else %}
+    <div style="text-align:center; padding:64px; color:var(--text-muted); border: 1px dashed var(--border-card); text-transform: uppercase; letter-spacing: 1.5px; font-weight: 800;">
+        📭 BELUM ADA REKAMAN LOG DIAGNOSIS DALAM SISTEM.
+    </div>
+    {% endif %}
+</main>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function filterUser(val) {
+    const url = new URL(window.location.href);
+    if (val) {
+        url.searchParams.set('username', val);
+    } else {
+        url.searchParams.delete('username');
+    }
+    url.searchParams.set('page', 1);
+    window.location.href = url.pathname + url.search;
+}
+
+function af(){
+    const m = document.getElementById('fM').value.toLowerCase();
+    const l = document.getElementById('fL').value.toLowerCase();
+    const s = document.getElementById('fS').value.toLowerCase();
+    let v = 0;
+    
+    document.querySelectorAll('#tb tr[data-m]').forEach(r => {
+        const mm = r.dataset.m.toLowerCase();
+        const ll = r.dataset.l.toLowerCase();
+        const tt = r.dataset.t.toLowerCase();
+        const ok = (!m || mm.includes(m)) && (!l || ll === l) && (!s || tt.includes(s));
+        r.style.display = ok ? '' : 'none';
+        const detailRow = r.nextElementSibling;
+        if (detailRow && detailRow.classList.contains('history-detail-row')) {
+            detailRow.style.display = ok && detailRow.classList.contains('is-open') ? 'table-row' : 'none';
+        }
+        if (ok) v++;
+    });
+    document.getElementById('vc').textContent = v;
+    document.getElementById('nm').style.display = v === 0 ? 'block' : 'none';
+}
+
+function toggleHistoryDetail(id) {
+    const row = document.getElementById(id);
+    if (!row) return;
+    row.classList.toggle('is-open');
+    row.style.display = row.classList.contains('is-open') ? 'table-row' : 'none';
+}
+</script>
+{% endblock %}
