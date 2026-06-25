@@ -6,18 +6,18 @@ from flask import Blueprint, Response, flash, redirect, render_template, request
 from flask_login import current_user, login_required
 import os
 
-import smartaddict.runtime as runtime
-from smartaddict.extensions import db
-from smartaddict.models.dashboard_feature import DashboardFeature
-from smartaddict.models.prediction import Prediction
-from smartaddict.models.predict_user_session import PredictUserSession
-from smartaddict.models.user import User
-from smartaddict.services.dashboard_feature_service import (
+import smartphone_guard.runtime as runtime
+from smartphone_guard.extensions import db
+from smartphone_guard.models.dashboard_feature import DashboardFeature
+from smartphone_guard.models.prediction import Prediction
+from smartphone_guard.models.predict_user_session import PredictUserSession
+from smartphone_guard.models.user import User
+from smartphone_guard.services.dashboard_feature_service import (
     DASHBOARD_FEATURE_TARGETS,
     get_dashboard_features,
 )
-from smartaddict.services.model_service import activate_model_version, get_available_retrain_versions
-from smartaddict.services.retrain_service import cleanup_statuses, run_retrain_pipeline
+from smartphone_guard.services.model_service import activate_model_version, get_available_retrain_versions
+from smartphone_guard.services.retrain_service import cleanup_statuses, run_retrain_pipeline
 
 admin_bp = Blueprint('admin', __name__)
 

@@ -3,11 +3,11 @@ from typing import List, Dict, Any
 
 from flask import current_app
 
-import smartaddict.runtime as runtime
-from smartaddict.extensions import db
-from smartaddict.models.prediction import Prediction
-from smartaddict.models.predict_user_session import PredictUserSession
-from smartaddict.services.retrain_service import maybe_trigger_retrain
+import smartphone_guard.runtime as runtime
+from smartphone_guard.extensions import db
+from smartphone_guard.models.prediction import Prediction
+from smartphone_guard.models.predict_user_session import PredictUserSession
+from smartphone_guard.services.retrain_service import maybe_trigger_retrain
 
 
 def _build_entries_from_row(row_values, selected_model, user_id):

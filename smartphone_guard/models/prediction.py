@@ -1,7 +1,7 @@
 import json
 from datetime import datetime
 
-from smartaddict.extensions import db
+from smartphone_guard.extensions import db
 
 
 class Prediction(db.Model):

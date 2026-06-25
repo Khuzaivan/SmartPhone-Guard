@@ -4,14 +4,14 @@ import warnings
 from flask import Flask, flash, redirect, render_template, url_for
 from flask_login import LoginManager, current_user, login_required
 
-from smartaddict.config import Config
-from smartaddict.extensions import db, login_manager
-from smartaddict.models.dashboard_feature import DashboardFeature
-from smartaddict.models.prediction import Prediction
-from smartaddict.models.predict_user_session import PredictUserSession
-from smartaddict.models.user import User
-from smartaddict.runtime import init_active_model
-from smartaddict.routes import api_routes, auth_routes, admin_routes, user_routes
+from smartphone_guard.config import Config
+from smartphone_guard.extensions import db, login_manager
+from smartphone_guard.models.dashboard_feature import DashboardFeature
+from smartphone_guard.models.prediction import Prediction
+from smartphone_guard.models.predict_user_session import PredictUserSession
+from smartphone_guard.models.user import User
+from smartphone_guard.runtime import init_active_model
+from smartphone_guard.routes import api_routes, auth_routes, admin_routes, user_routes
 
 warnings.filterwarnings("ignore", category=UserWarning)
 

@@ -6,16 +6,16 @@ from io import StringIO
 from flask import Blueprint, Response, current_app, flash, redirect, render_template, request, send_file, session, url_for
 from flask_login import current_user, login_required
 
-import smartaddict.runtime as runtime
-from smartaddict.extensions import db
-from smartaddict.models.prediction import Prediction
-from smartaddict.models.predict_user_session import PredictUserSession
-from smartaddict.models.user import User
-from smartaddict.services.csv_service import average_rows, parse_csv_rows
-from smartaddict.services.dashboard_feature_service import get_dashboard_feature_cards
-from smartaddict.services.retrain_service import maybe_trigger_retrain
-from smartaddict.services.prediction_service import process_batch, process_single
-from smartaddict.utils.constants import FEATURE_KEYS, MODEL_FILES, QUESTIONS
+import smartphone_guard.runtime as runtime
+from smartphone_guard.extensions import db
+from smartphone_guard.models.prediction import Prediction
+from smartphone_guard.models.predict_user_session import PredictUserSession
+from smartphone_guard.models.user import User
+from smartphone_guard.services.csv_service import average_rows, parse_csv_rows
+from smartphone_guard.services.dashboard_feature_service import get_dashboard_feature_cards
+from smartphone_guard.services.retrain_service import maybe_trigger_retrain
+from smartphone_guard.services.prediction_service import process_batch, process_single
+from smartphone_guard.utils.constants import FEATURE_KEYS, MODEL_FILES, QUESTIONS
 
 user_bp = Blueprint('user', __name__)
 

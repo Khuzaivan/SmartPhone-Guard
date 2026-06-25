@@ -1,6 +1,6 @@
 from flask import Blueprint, jsonify, request
 
-from smartaddict.services.retrain_service import get_current_retrain_status, list_statuses_paginated, read_status
+from smartphone_guard.services.retrain_service import get_current_retrain_status, list_statuses_paginated, read_status
 
 api_bp = Blueprint('api', __name__)
 
@@ -45,7 +45,7 @@ def api_retrain_force_reset():
             return jsonify({"error": "Unauthorized"}), 403
         
         try:
-            from smartaddict.services.retrain_service import RETRAIN_LOCK, get_latest_retrain_status
+            from smartphone_guard.services.retrain_service import RETRAIN_LOCK, get_latest_retrain_status
             from datetime import datetime
             
             # Get latest running/pending job
@@ -56,7 +56,7 @@ def api_retrain_force_reset():
                 # Mark as failed
                 latest["status"] = "failed"
                 latest["finished_at"] = datetime.utcnow().isoformat() + "Z"
-                from smartaddict.services.retrain_service import append_log, write_status
+                from smartphone_guard.services.retrain_service import append_log, write_status
                 append_log(job_id, "ERROR", "Job di-reset paksa oleh admin")
                 write_status(job_id, latest)
                 

@@ -10,11 +10,11 @@ from pathlib import Path
 
 from flask import current_app, has_app_context
 
-from smartaddict.config import DATASET_PATH, MODEL_ROOT_DIR, NOTEBOOK_PATH, STATUS_DIR
-from smartaddict.extensions import db
-from smartaddict.models.predict_user_session import PredictUserSession
-from smartaddict.services.model_service import get_venv_python_executable, load_model_version, save_active_version_to_config
-from smartaddict.utils.constants import RETRAIN_STEP_PLAN
+from smartphone_guard.config import DATASET_PATH, MODEL_ROOT_DIR, NOTEBOOK_PATH, STATUS_DIR
+from smartphone_guard.extensions import db
+from smartphone_guard.models.predict_user_session import PredictUserSession
+from smartphone_guard.services.model_service import get_venv_python_executable, load_model_version, save_active_version_to_config
+from smartphone_guard.utils.constants import RETRAIN_STEP_PLAN
 
 
 RETRAIN_LOCK = threading.Lock()
@@ -386,7 +386,7 @@ def _refresh_app_model_state(version_name):
     """Reload runtime model state after successful retrain"""
     try:
         # Import runtime module and force reload
-        import smartaddict.runtime as runtime
+        import smartphone_guard.runtime as runtime
         
         # Force reload the model state
         runtime.init_active_model()
@@ -601,7 +601,7 @@ def _execute_retrain_job(app_instance, job_id):
         
         # STEP 3: Auto-select model with highest accuracy
         append_log(job_id, "INFO", "🎯 STEP 4: Memilih model dengan akurasi tertinggi...")
-        from smartaddict.services.model_service import select_and_activate_best_model
+        from smartphone_guard.services.model_service import select_and_activate_best_model
         
         best_model_name, best_accuracy = select_and_activate_best_model()
         if best_model_name:

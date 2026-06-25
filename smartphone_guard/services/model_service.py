@@ -6,8 +6,8 @@ from pathlib import Path
 from flask import has_app_context, current_app
 from joblib import load
 
-from smartaddict.config import CONFIG_PATH, MODEL_ROOT_DIR
-from smartaddict.utils.constants import LEGACY_MODEL_FILES, SCALER_FILE_CANDIDATES
+from smartphone_guard.config import CONFIG_PATH, MODEL_ROOT_DIR
+from smartphone_guard.utils.constants import LEGACY_MODEL_FILES, SCALER_FILE_CANDIDATES
 
 
 def _get_logger():
@@ -199,7 +199,7 @@ def activate_model_version(version_name):
     save_active_version_to_config(version_name)
 
     try:
-        from smartaddict import runtime
+        from smartphone_guard import runtime
 
         runtime.init_active_model()
     except Exception as exc:

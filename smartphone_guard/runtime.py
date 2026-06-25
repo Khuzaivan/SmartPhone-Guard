@@ -1,8 +1,8 @@
 import json
 
-from smartaddict.models.prediction import Prediction
-from smartaddict.services.model_service import get_active_version_from_config, load_model_version
-from smartaddict.utils.constants import FEATURE_KEYS, LABEL_MAP, MODEL_FILES, QUESTIONS
+from smartphone_guard.models.prediction import Prediction
+from smartphone_guard.services.model_service import get_active_version_from_config, load_model_version
+from smartphone_guard.utils.constants import FEATURE_KEYS, LABEL_MAP, MODEL_FILES, QUESTIONS
 
 
 ACTIVE_MODEL_VERSION = None

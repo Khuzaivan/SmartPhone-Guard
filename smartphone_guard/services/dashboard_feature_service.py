@@ -1,7 +1,7 @@
 from flask import url_for
 
-from smartaddict.extensions import db
-from smartaddict.models.dashboard_feature import DashboardFeature
+from smartphone_guard.extensions import db
+from smartphone_guard.models.dashboard_feature import DashboardFeature
 
 
 DASHBOARD_FEATURE_TARGETS = [
